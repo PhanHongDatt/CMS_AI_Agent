@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "ActionStatus": {
+      "enum": [
+        "PENDING",
+        "EXECUTING",
+        "SUCCESS",
+        "FAILED",
+        "TIMEOUT"
+      ],
+      "title": "ActionStatus",
+      "type": "string"
+    },
+    "Risk": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "title": "Risk",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "policy_decision_id": {
+      "title": "Policy Decision Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "risk": {
+      "$ref": "#/$defs/Risk"
+    },
+    "rollback_supported": {
+      "title": "Rollback Supported",
+      "type": "boolean"
+    },
+    "rollback_tested": {
+      "title": "Rollback Tested",
+      "type": "boolean"
+    },
+    "pre_state_snapshot": {
+      "additionalProperties": true,
+      "title": "Pre State Snapshot",
+      "type": "object"
+    },
+    "status": {
+      "$ref": "#/$defs/ActionStatus",
+      "default": "PENDING"
+    },
+    "executed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Executed At"
+    }
+  },
+  "required": [
+    "id",
+    "incident_id",
+    "policy_decision_id",
+    "name",
+    "risk",
+    "rollback_supported",
+    "rollback_tested",
+    "pre_state_snapshot"
+  ],
+  "title": "Action",
+  "type": "object"
+}

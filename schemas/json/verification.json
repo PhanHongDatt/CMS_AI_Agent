@@ -1,0 +1,54 @@
+{
+  "$defs": {
+    "VerificationResult": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ],
+      "title": "VerificationResult",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "action_id": {
+      "title": "Action Id",
+      "type": "string"
+    },
+    "evidence_before_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Before Ids",
+      "type": "array"
+    },
+    "evidence_after_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence After Ids",
+      "type": "array"
+    },
+    "comparison": {
+      "additionalProperties": true,
+      "title": "Comparison",
+      "type": "object"
+    },
+    "result": {
+      "$ref": "#/$defs/VerificationResult"
+    },
+    "rollback_triggered": {
+      "title": "Rollback Triggered",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "action_id",
+    "evidence_before_ids",
+    "evidence_after_ids",
+    "comparison",
+    "result",
+    "rollback_triggered"
+  ],
+  "title": "Verification",
+  "type": "object"
+}

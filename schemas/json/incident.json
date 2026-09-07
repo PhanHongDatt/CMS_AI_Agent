@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "Domain": {
+      "enum": [
+        "infrastructure",
+        "business"
+      ],
+      "title": "Domain",
+      "type": "string"
+    },
+    "IncidentStatus": {
+      "enum": [
+        "RECEIVED",
+        "CORRELATED",
+        "INVESTIGATING",
+        "RCA_READY",
+        "CONFIDENCE_EVALUATED",
+        "POLICY_EVALUATED",
+        "WAITING_APPROVAL",
+        "APPROVED",
+        "DENIED",
+        "EXECUTING",
+        "VERIFYING",
+        "RESOLVED",
+        "ROLLBACK",
+        "ESCALATED"
+      ],
+      "title": "IncidentStatus",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "INFO",
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "fingerprint": {
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    },
+    "status": {
+      "$ref": "#/$defs/IncidentStatus",
+      "default": "RECEIVED"
+    },
+    "evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "rca_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rca Id"
+    },
+    "confidence_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence Id"
+    },
+    "policy_decision_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Decision Id"
+    },
+    "action_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Action Ids",
+      "type": "array"
+    },
+    "trace_id": {
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source",
+    "fingerprint",
+    "domain",
+    "severity",
+    "trace_id"
+  ],
+  "title": "Incident",
+  "type": "object"
+}

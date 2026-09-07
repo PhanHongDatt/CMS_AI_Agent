@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "EvidenceSource": {
+      "enum": [
+        "prometheus",
+        "opensearch",
+        "kubernetes",
+        "aws",
+        "erpnext"
+      ],
+      "title": "EvidenceSource",
+      "type": "string"
+    },
+    "TrustLevel": {
+      "enum": [
+        "UNTRUSTED_DATA"
+      ],
+      "title": "TrustLevel",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "incident_id": {
+      "format": "uuid",
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/EvidenceSource"
+    },
+    "entity": {
+      "title": "Entity",
+      "type": "string"
+    },
+    "metric_or_query": {
+      "title": "Metric Or Query",
+      "type": "string"
+    },
+    "value": {
+      "title": "Value"
+    },
+    "unit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "source_reference": {
+      "title": "Source Reference",
+      "type": "string"
+    },
+    "freshness_seconds": {
+      "title": "Freshness Seconds",
+      "type": "number"
+    },
+    "trust_level": {
+      "$ref": "#/$defs/TrustLevel",
+      "default": "UNTRUSTED_DATA"
+    },
+    "ttl_expires_at": {
+      "format": "date-time",
+      "title": "Ttl Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "incident_id",
+    "source",
+    "entity",
+    "metric_or_query",
+    "value",
+    "timestamp",
+    "source_reference",
+    "freshness_seconds",
+    "ttl_expires_at"
+  ],
+  "title": "Evidence",
+  "type": "object"
+}

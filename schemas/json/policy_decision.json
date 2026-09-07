@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "PolicyDecisionEnum": {
+      "enum": [
+        "ALLOW",
+        "DENY",
+        "REQUIRE_APPROVAL"
+      ],
+      "title": "PolicyDecisionEnum",
+      "type": "string"
+    },
+    "PolicyInputs": {
+      "properties": {
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "risk": {
+          "$ref": "#/$defs/Risk"
+        },
+        "blast_radius": {
+          "title": "Blast Radius",
+          "type": "string"
+        },
+        "rollback_tested": {
+          "title": "Rollback Tested",
+          "type": "boolean"
+        },
+        "environment": {
+          "title": "Environment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "confidence",
+        "severity",
+        "risk",
+        "blast_radius",
+        "rollback_tested",
+        "environment"
+      ],
+      "title": "PolicyInputs",
+      "type": "object"
+    },
+    "Risk": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ],
+      "title": "Risk",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "INFO",
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/PolicyDecisionEnum"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "inputs": {
+      "$ref": "#/$defs/PolicyInputs"
+    },
+    "rule_matched": {
+      "title": "Rule Matched",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "incident_id",
+    "decision",
+    "reason",
+    "inputs",
+    "rule_matched"
+  ],
+  "title": "PolicyDecision",
+  "type": "object"
+}

@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "ConfidenceSubScores": {
+      "properties": {
+        "evidence_quality": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Evidence Quality",
+          "type": "number"
+        },
+        "evidence_completeness": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Evidence Completeness",
+          "type": "number"
+        },
+        "evidence_consistency": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Evidence Consistency",
+          "type": "number"
+        },
+        "rca_agreement": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Rca Agreement",
+          "type": "number"
+        },
+        "model_output_quality": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Model Output Quality",
+          "type": "number"
+        },
+        "historical_success": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Historical Success",
+          "type": "number"
+        }
+      },
+      "required": [
+        "evidence_quality",
+        "evidence_completeness",
+        "evidence_consistency",
+        "rca_agreement",
+        "model_output_quality",
+        "historical_success"
+      ],
+      "title": "ConfidenceSubScores",
+      "type": "object"
+    },
+    "ConfidenceWeights": {
+      "properties": {
+        "evidence_quality": {
+          "default": 0.25,
+          "title": "Evidence Quality",
+          "type": "number"
+        },
+        "evidence_completeness": {
+          "default": 0.2,
+          "title": "Evidence Completeness",
+          "type": "number"
+        },
+        "evidence_consistency": {
+          "default": 0.2,
+          "title": "Evidence Consistency",
+          "type": "number"
+        },
+        "rca_agreement": {
+          "default": 0.15,
+          "title": "Rca Agreement",
+          "type": "number"
+        },
+        "model_output_quality": {
+          "default": 0.1,
+          "title": "Model Output Quality",
+          "type": "number"
+        },
+        "historical_success": {
+          "default": 0.1,
+          "title": "Historical Success",
+          "type": "number"
+        }
+      },
+      "title": "ConfidenceWeights",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "incident_id": {
+      "title": "Incident Id",
+      "type": "string"
+    },
+    "sub_scores": {
+      "$ref": "#/$defs/ConfidenceSubScores"
+    },
+    "weights": {
+      "$ref": "#/$defs/ConfidenceWeights"
+    },
+    "final_score": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Final Score",
+      "type": "number"
+    },
+    "calibration_version": {
+      "title": "Calibration Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "incident_id",
+    "sub_scores",
+    "final_score",
+    "calibration_version"
+  ],
+  "title": "Confidence",
+  "type": "object"
+}

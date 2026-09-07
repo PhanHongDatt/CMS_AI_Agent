@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "AlternativeHypothesis": {
+      "properties": {
+        "hypothesis": {
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "likelihood": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Likelihood",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hypothesis",
+        "likelihood"
+      ],
+      "title": "AlternativeHypothesis",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "root_cause": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Root Cause"
+    },
+    "evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "affected_components": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Affected Components",
+      "type": "array"
+    },
+    "alternative_hypotheses": {
+      "items": {
+        "$ref": "#/$defs/AlternativeHypothesis"
+      },
+      "title": "Alternative Hypotheses",
+      "type": "array"
+    },
+    "recommended_action": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recommended Action"
+    },
+    "insufficient_evidence": {
+      "title": "Insufficient Evidence",
+      "type": "boolean"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "prompt_version": {
+      "title": "Prompt Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "root_cause",
+    "evidence_ids",
+    "affected_components",
+    "insufficient_evidence",
+    "model",
+    "prompt_version"
+  ],
+  "title": "RCA",
+  "type": "object"
+}
