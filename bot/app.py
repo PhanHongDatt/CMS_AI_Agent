@@ -8,7 +8,7 @@ Run modes:
 import asyncio
 import os
 
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 from bot.handlers import (
     cmd_alert,
@@ -20,6 +20,7 @@ from bot.handlers import (
     cmd_pipeline,
     cmd_start,
     cmd_status,
+    handle_text,
 )
 from core.logging import configure_logging, get_logger
 
@@ -38,6 +39,9 @@ def build_application(token: str):
     app.add_handler(CommandHandler("deny", cmd_deny))
     app.add_handler(CommandHandler("pipeline", cmd_pipeline))
     app.add_handler(CommandHandler("autonomy", cmd_autonomy))
+    # Text tự nhiên (không phải /lệnh) → hỏi-đáp qua Gemini. Đăng ký SAU các
+    # CommandHandler nên lệnh /... vẫn được ưu tiên.
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     return app
 
 

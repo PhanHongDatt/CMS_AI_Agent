@@ -1,8 +1,14 @@
 """Telegram bot command handlers — all state access via API HTTP client."""
 
+import json
+import os
+
 import httpx
 from telegram import Update
 from telegram.ext import ContextTypes
+
+from core.llm.base import LLMRequest
+from core.llm.gemini import GeminiProvider
 
 from bot.api_client import (
     decide_approval,
@@ -243,3 +249,59 @@ async def cmd_autonomy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"  Rollback tested: {info['rollback_tested']}"
         )
     await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+
+
+@require_auth
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Hỏi-đáp ngôn ngữ tự nhiên qua Gemini.
+
+    Bắt mọi message text KHÔNG phải lệnh /slash. Đưa câu hỏi + bối cảnh sự cố
+    hiện tại vào Gemini → trả lời bằng tiếng Việt. Phân biệt với các CommandHandler
+    (đăng ký trước trong bot/app.py nên lệnh /... vẫn ưu tiên).
+    """
+    question = (update.message.text or "").strip()
+    if not question:
+        return
+
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        await update.message.reply_text(
+            "Chưa cấu hình GEMINI_API_KEY — hỏi-đáp ngôn ngữ tự nhiên chưa bật. "
+            "Dùng /help để xem các lệnh."
+        )
+        return
+
+    # Bối cảnh: danh sách sự cố hiện tại để trả lời sát thực tế.
+    try:
+        incidents = await list_incidents()
+    except Exception:
+        incidents = []
+    ctx = (
+        json.dumps(incidents[:10], ensure_ascii=False, default=str)
+        if incidents
+        else "(chưa có sự cố nào)"
+    )
+
+    system_prompt = (
+        "Bạn là trợ lý DevOps của nền tảng Agentic (giám sát Kubernetes, nhận alert, "
+        "phân tích RCA, remediation). Trả lời NGẮN GỌN, rõ ràng, bằng tiếng Việt. "
+        "Dựa vào dữ liệu sự cố bên dưới khi câu hỏi liên quan. Nếu người dùng muốn "
+        "thao tác, gợi ý lệnh phù hợp (/status, /pending, /approve, /deny, /incident, "
+        "/pipeline, /autonomy).\n"
+        f"Dữ liệu sự cố hiện tại (JSON): {ctx}"
+    )
+
+    try:
+        provider = GeminiProvider(api_key=api_key)
+        req = LLMRequest(
+            task="chat",
+            system_prompt=system_prompt,
+            user_message=question,
+            max_tokens=800,
+            temperature=0.3,
+        )
+        resp = await provider.complete(req, "gemini-2.0-flash")
+        await update.message.reply_text(resp.content or "(LLM không trả về nội dung)")
+    except Exception as e:  # noqa: BLE001 — trả lỗi về người dùng thay vì crash bot
+        logger.error("nl_chat_failed", error=str(e))
+        await update.message.reply_text(f"Lỗi khi gọi LLM: {e}")
