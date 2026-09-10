@@ -300,7 +300,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             max_tokens=800,
             temperature=0.3,
         )
-        resp = await provider.complete(req, "gemini-2.0-flash")
+        # Model chọn qua env GEMINI_MODEL (đổi không cần rebuild). gemini-2.0-flash
+        # đã deprecated; mặc định model flash hiện hành.
+        model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        resp = await provider.complete(req, model)
         await update.message.reply_text(resp.content or "(LLM không trả về nội dung)")
     except Exception as e:  # noqa: BLE001 — trả lỗi về người dùng thay vì crash bot
         logger.error("nl_chat_failed", error=str(e))
