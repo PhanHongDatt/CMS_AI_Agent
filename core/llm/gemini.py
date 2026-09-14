@@ -16,7 +16,7 @@ from core.llm.errors import (
 # động với SDK cũ google.generativeai (deprecated) — trả 403 "project denied"
 # gây hiểu lầm là account bị chặn. Bắt buộc dùng SDK mới google-genai.
 _COST_TABLE: dict[str, dict[str, float]] = {
-    "gemini-2.5-flash": {"input": 0.10, "output": 0.40},
+    "gemini-3.5-flash": {"input": 0.10, "output": 0.40},
 }
 _DEFAULT_COST = {"input": 0.10, "output": 0.40}
 

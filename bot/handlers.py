@@ -303,7 +303,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 max_tokens=800,
                 temperature=0.3,
             ),
-            "gemini-2.5-flash",
+            "gemini-3.5-flash",
         )
         await update.message.reply_text(resp.content or "(LLM không trả về nội dung)")
     except Exception as e:  # noqa: BLE001 — trả lỗi về người dùng thay vì crash bot

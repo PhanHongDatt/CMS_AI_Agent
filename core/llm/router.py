@@ -17,25 +17,25 @@ ROUTING_TABLE: dict[str, ModelRoute] = {
         provider="openai",
         model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.5-flash",
+        fallback_model="gemini-3.5-flash",
     ),
     "rca_lightweight": ModelRoute(
         provider="openai",
         model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.5-flash",
+        fallback_model="gemini-3.5-flash",
     ),
     "business_analysis": ModelRoute(
         provider="openai",
         model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.5-flash",
+        fallback_model="gemini-3.5-flash",
     ),
     "default": ModelRoute(
         provider="openai",
         model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.5-flash",
+        fallback_model="gemini-3.5-flash",
     ),
 }
 
