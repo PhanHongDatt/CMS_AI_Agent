@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.api_client import (
+    chat_llm,
     decide_approval,
     get_autonomy,
     get_business_customers,
@@ -24,7 +25,6 @@ from bot.api_client import (
     submit_alert,
 )
 from bot.auth import require_auth
-from core.llm.base import LLMRequest
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -268,14 +268,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if not question:
         return
 
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
-        await update.message.reply_text(
-            "Chưa cấu hình GEMINI_API_KEY — hỏi-đáp ngôn ngữ tự nhiên chưa bật. "
-            "Dùng /help để xem các lệnh."
-        )
-        return
-
     # Bối cảnh: sự cố + trạng thái cluster THẬT (qua api → K8s API, xem
     # api/routes/cluster.py) để trả lời sát thực tế thay vì chỉ dựa incident.
     try:
@@ -346,23 +338,13 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"{json.dumps(business_tasks, ensure_ascii=False, default=str)[:1500]}"
     )
 
-    # Model PIN cứng (không dùng alias "latest") — cùng version với fallback
-    # của pipeline RCA (core/llm/router.py) để nhất quán hành vi/giá.
+    # Gọi qua api /llm/chat → LLMGateway (openai chính, gemini fallback, retry
+    # + circuit breaker sẵn có — core/llm/gateway.py). Trước đây bot tự gọi
+    # thẳng GeminiProvider, không có fallback khi Gemini quá tải (503
+    # UNAVAILABLE) dù OpenAI vẫn khỏe — sửa sau khi user báo lỗi 503 dồn dập.
     try:
-        from core.llm.gemini import GeminiProvider
-
-        provider = GeminiProvider(api_key=api_key)
-        resp = await provider.complete(
-            LLMRequest(
-                task="chat",
-                system_prompt=system_prompt,
-                user_message=question,
-                max_tokens=800,
-                temperature=0.3,
-            ),
-            "gemini-3.5-flash",
-        )
-        await update.message.reply_text(resp.content or "(LLM không trả về nội dung)")
+        result = await chat_llm(system_prompt=system_prompt, user_message=question)
+        await update.message.reply_text(result.get("content") or "(LLM không trả về nội dung)")
     except Exception as e:  # noqa: BLE001 — trả lỗi về người dùng thay vì crash bot
         logger.error("nl_chat_failed", error=str(e))
         await update.message.reply_text(f"Lỗi khi gọi LLM: {e}")

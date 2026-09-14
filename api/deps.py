@@ -60,6 +60,10 @@ def _build_llm_gateway() -> LLMGateway:
 _llm_gateway = _build_llm_gateway()
 _rca_agent = RCAAgent(gateway=_llm_gateway)
 
+
+def get_llm_gateway() -> LLMGateway:
+    return _llm_gateway
+
 # ── Telegram Notifier (optional) ──────────────────────────────────────────────
 def _build_notifier() -> TelegramNotifier | None:
     token = os.getenv("TELEGRAM_BOT_TOKEN")

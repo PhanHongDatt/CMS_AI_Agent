@@ -124,3 +124,13 @@ async def get_business_tasks() -> list[dict]:
         resp = await client.get(f"{_api_url()}/business/tasks")
         resp.raise_for_status()
         return resp.json()
+
+
+async def chat_llm(system_prompt: str, user_message: str) -> dict:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(
+            f"{_api_url()}/llm/chat",
+            json={"system_prompt": system_prompt, "user_message": user_message},
+        )
+        resp.raise_for_status()
+        return resp.json()
