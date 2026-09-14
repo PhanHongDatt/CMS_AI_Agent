@@ -30,19 +30,19 @@ _policy_engine = PolicyEngine()
 
 # ── LLM Gateway (mock if no real keys configured) ─────────────────────────────
 def _build_llm_gateway() -> LLMGateway:
-    # Routing table hardcodes "claude" as primary provider.
-    # Register mock under "claude" as default so pipeline works without real keys.
-    # Real ClaudeProvider replaces mock if ANTHROPIC_API_KEY is set.
-    providers: dict = {"claude": MockLLMProvider(), "gemini": MockLLMProvider()}
+    # Routing table (core/llm/router.py) dùng "openai" làm provider chính,
+    # "gemini" làm fallback. Register mock trước để pipeline chạy được kể cả
+    # khi chưa có key thật. Real OpenAIProvider thay mock nếu OPENAI_API_KEY set.
+    providers: dict = {"openai": MockLLMProvider(), "gemini": MockLLMProvider()}
 
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    if anthropic_key:
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key:
         try:
-            from core.llm.claude import ClaudeProvider
-            providers["claude"] = ClaudeProvider(api_key=anthropic_key)
-            _log.info("llm_provider_loaded", provider="claude")
+            from core.llm.openai import OpenAIProvider
+            providers["openai"] = OpenAIProvider(api_key=openai_key)
+            _log.info("llm_provider_loaded", provider="openai")
         except Exception as e:
-            _log.warning("claude_provider_init_failed", error=str(e))
+            _log.warning("openai_provider_init_failed", error=str(e))
 
     gemini_key = os.getenv("GEMINI_API_KEY")
     if gemini_key:

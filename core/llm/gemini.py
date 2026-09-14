@@ -1,12 +1,9 @@
 import asyncio
 import time
 
-import google.generativeai as genai
-from google.api_core.exceptions import (
-    DeadlineExceeded,
-    PermissionDenied,
-    ResourceExhausted,
-)
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types
 
 from core.llm.base import LLMProvider, LLMRequest, LLMResponse
 from core.llm.errors import (
@@ -15,19 +12,21 @@ from core.llm.errors import (
     LLMTimeoutError,
 )
 
+# NOTE (2026-09): key format mới của Google AI Studio ("AQ....") KHÔNG hoạt
+# động với SDK cũ google.generativeai (deprecated) — trả 403 "project denied"
+# gây hiểu lầm là account bị chặn. Bắt buộc dùng SDK mới google-genai.
 _COST_TABLE: dict[str, dict[str, float]] = {
-    "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
-    "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
+    "gemini-2.5-flash": {"input": 0.10, "output": 0.40},
 }
 _DEFAULT_COST = {"input": 0.10, "output": 0.40}
 
-# Rough estimate: 1 token ≈ 4 characters
+# Rough estimate: 1 token ≈ 4 characters (fallback nếu SDK không trả usage)
 _CHARS_PER_TOKEN = 4
 
 
 class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str, timeout_seconds: float = 30.0) -> None:
-        genai.configure(api_key=api_key)
+        self._client = genai.Client(api_key=api_key)
         self._timeout = timeout_seconds
 
     @property
@@ -40,18 +39,14 @@ class GeminiProvider(LLMProvider):
 
     async def complete(self, request: LLMRequest, model: str) -> LLMResponse:
         start = time.monotonic()
-        client = genai.GenerativeModel(
-            model_name=model,
-            system_instruction=request.system_prompt,
-        )
-        prompt = request.user_message
-
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
-                    client.generate_content,
-                    prompt,
-                    generation_config=genai.types.GenerationConfig(
+                    self._client.models.generate_content,
+                    model=model,
+                    contents=request.user_message,
+                    config=types.GenerateContentConfig(
+                        system_instruction=request.system_prompt,
                         max_output_tokens=request.max_tokens,
                         temperature=request.temperature,
                     ),
@@ -60,17 +55,19 @@ class GeminiProvider(LLMProvider):
             )
         except TimeoutError:
             raise LLMTimeoutError(f"Gemini request timed out after {self._timeout}s")
-        except ResourceExhausted as e:
-            raise LLMRateLimitError(str(e)) from e
-        except PermissionDenied as e:
-            raise LLMAuthError(str(e)) from e
-        except DeadlineExceeded as e:
+        except genai_errors.ClientError as e:
+            status = getattr(e, "code", None)
+            if status == 429:
+                raise LLMRateLimitError(str(e)) from e
+            if status in (401, 403):
+                raise LLMAuthError(str(e)) from e
+            raise
+        except genai_errors.ServerError as e:
             raise LLMTimeoutError(str(e)) from e
 
         duration = time.monotonic() - start
-        content = response.text if response.text else ""
+        content = response.text or ""
 
-        # Gemini SDK exposes usage_metadata when available
         usage = getattr(response, "usage_metadata", None)
         if usage:
             input_tokens = getattr(usage, "prompt_token_count", 0) or 0

@@ -1,6 +1,5 @@
 """Telegram bot command handlers — all state access via API HTTP client."""
 
-import asyncio
 import json
 import os
 
@@ -18,6 +17,7 @@ from bot.api_client import (
     submit_alert,
 )
 from bot.auth import require_auth
+from core.llm.base import LLMRequest
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -289,25 +289,23 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"Dữ liệu sự cố hiện tại (JSON): {ctx}"
     )
 
-    # SDK mới google-genai (key format "AQ." KHÔNG chạy với google.generativeai cũ
-    # → 403; SDK mới dùng đúng endpoint). Model chọn qua env GEMINI_MODEL.
-    model = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    # Model PIN cứng (không dùng alias "latest") — cùng version với fallback
+    # của pipeline RCA (core/llm/router.py) để nhất quán hành vi/giá.
     try:
-        from google import genai
-        from google.genai import types
+        from core.llm.gemini import GeminiProvider
 
-        client = genai.Client(api_key=api_key)
-        resp = await asyncio.to_thread(
-            client.models.generate_content,
-            model=model,
-            contents=question,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                max_output_tokens=800,
+        provider = GeminiProvider(api_key=api_key)
+        resp = await provider.complete(
+            LLMRequest(
+                task="chat",
+                system_prompt=system_prompt,
+                user_message=question,
+                max_tokens=800,
                 temperature=0.3,
             ),
+            "gemini-2.5-flash",
         )
-        await update.message.reply_text(resp.text or "(LLM không trả về nội dung)")
+        await update.message.reply_text(resp.content or "(LLM không trả về nội dung)")
     except Exception as e:  # noqa: BLE001 — trả lỗi về người dùng thay vì crash bot
         logger.error("nl_chat_failed", error=str(e))
         await update.message.reply_text(f"Lỗi khi gọi LLM: {e}")

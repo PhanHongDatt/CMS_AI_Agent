@@ -9,32 +9,33 @@ class ModelRoute:
     fallback_model: str | None = None
 
 
-# Task → (provider, model) routing table.
-# Fallback is the secondary provider when primary circuit is open.
+# Task → (provider, model) routing table. Model đều PIN cứng — không dùng
+# alias "latest"/"-preview" (tránh Google/OpenAI đổi hành vi/giá âm thầm).
+# Fallback là provider phụ khi circuit breaker của provider chính mở.
 ROUTING_TABLE: dict[str, ModelRoute] = {
     "rca": ModelRoute(
-        provider="claude",
-        model="claude-sonnet-4-6",
+        provider="openai",
+        model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.0-flash",
+        fallback_model="gemini-2.5-flash",
     ),
     "rca_lightweight": ModelRoute(
-        provider="claude",
-        model="claude-haiku-4-5-20251001",
+        provider="openai",
+        model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.0-flash",
+        fallback_model="gemini-2.5-flash",
     ),
     "business_analysis": ModelRoute(
-        provider="claude",
-        model="claude-sonnet-4-6",
+        provider="openai",
+        model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.0-flash",
+        fallback_model="gemini-2.5-flash",
     ),
     "default": ModelRoute(
-        provider="claude",
-        model="claude-sonnet-4-6",
+        provider="openai",
+        model="gpt-4.1-mini",
         fallback_provider="gemini",
-        fallback_model="gemini-2.0-flash",
+        fallback_model="gemini-2.5-flash",
     ),
 }
 
