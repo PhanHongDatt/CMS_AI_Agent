@@ -10,6 +10,8 @@ from telegram.ext import ContextTypes
 from bot.api_client import (
     decide_approval,
     get_autonomy,
+    get_cluster_events,
+    get_cluster_health,
     get_incident,
     get_pending_approvals,
     list_incidents,
@@ -269,24 +271,38 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
         return
 
-    # Bối cảnh: danh sách sự cố hiện tại để trả lời sát thực tế.
+    # Bối cảnh: sự cố + trạng thái cluster THẬT (qua api → K8s API, xem
+    # api/routes/cluster.py) để trả lời sát thực tế thay vì chỉ dựa incident.
     try:
         incidents = await list_incidents()
     except Exception:
         incidents = []
-    ctx = (
+    incidents_ctx = (
         json.dumps(incidents[:10], ensure_ascii=False, default=str)
         if incidents
         else "(chưa có sự cố nào)"
     )
 
+    try:
+        cluster_health = await get_cluster_health()
+    except Exception as e:
+        cluster_health = {"error": f"không lấy được: {e}"}
+
+    try:
+        cluster_events = await get_cluster_events()
+    except Exception as e:
+        cluster_events = {"error": f"không lấy được: {e}"}
+
     system_prompt = (
         "Bạn là trợ lý DevOps của nền tảng Agentic (giám sát Kubernetes, nhận alert, "
         "phân tích RCA, remediation). Trả lời NGẮN GỌN, rõ ràng, bằng tiếng Việt. "
-        "Dựa vào dữ liệu sự cố bên dưới khi câu hỏi liên quan. Nếu người dùng muốn "
-        "thao tác, gợi ý lệnh phù hợp (/status, /pending, /approve, /deny, /incident, "
-        "/pipeline, /autonomy).\n"
-        f"Dữ liệu sự cố hiện tại (JSON): {ctx}"
+        "Dữ liệu bên dưới lấy TRỰC TIẾP từ Kubernetes API (không phải giả lập) — "
+        "dùng nó để trả lời câu hỏi về trạng thái cluster/node/pod/sự kiện. Nếu "
+        "người dùng muốn thao tác, gợi ý lệnh phù hợp (/status, /pending, /approve, "
+        "/deny, /incident, /pipeline, /autonomy).\n"
+        f"Sự cố hiện tại (JSON): {incidents_ctx}\n"
+        f"Trạng thái node cluster (JSON): {json.dumps(cluster_health, ensure_ascii=False, default=str)}\n"
+        f"Sự kiện gần đây theo namespace (JSON): {json.dumps(cluster_events, ensure_ascii=False, default=str)[:3000]}"
     )
 
     # Model PIN cứng (không dùng alias "latest") — cùng version với fallback

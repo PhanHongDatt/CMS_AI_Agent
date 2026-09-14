@@ -73,7 +73,14 @@ _notifier = _build_notifier()
 
 # ── Evidence gathering: THẬT (đọc cluster qua RBAC read-only) nếu chạy trong
 # K8s; Mock nếu không (vd chạy local dev). Chỉ ĐỌC — không đổi state cluster.
+# _k8s_tools (module-level) = instance KubernetesReadonlyTools thật, dùng lại
+# cho endpoint /cluster/* (api/routes/cluster.py) — bot gọi qua HTTP để lấy
+# ngữ cảnh thật cho NL Q&A, không cần K8s client/RBAC riêng trong bot pod.
+_k8s_tools = None
+
+
 def _build_evidence_gatherer():
+    global _k8s_tools
     try:
         from kubernetes import client, config
 
@@ -85,9 +92,12 @@ def _build_evidence_gatherer():
             ).split(",")
             if ns.strip()
         ]
-        gatherer = RealK8sEvidenceGatherer(
-            core_v1=client.CoreV1Api(), apps_v1=client.AppsV1Api(), namespaces=namespaces
-        )
+        core_v1, apps_v1 = client.CoreV1Api(), client.AppsV1Api()
+        gatherer = RealK8sEvidenceGatherer(core_v1=core_v1, apps_v1=apps_v1, namespaces=namespaces)
+
+        from mcp.kubernetes.readonly.tools import KubernetesReadonlyTools
+
+        _k8s_tools = KubernetesReadonlyTools(core_v1=core_v1, apps_v1=apps_v1)
         _log.info("evidence_gatherer_loaded", mode="real_k8s", namespaces=namespaces)
         return gatherer
     except Exception as e:
@@ -96,6 +106,20 @@ def _build_evidence_gatherer():
 
 
 _evidence_gatherer = _build_evidence_gatherer()
+
+
+def get_k8s_tools():
+    return _k8s_tools
+
+
+def get_k8s_namespaces() -> list[str]:
+    return [
+        ns.strip()
+        for ns in os.getenv(
+            "K8S_EVIDENCE_NAMESPACES", "construction,mariadb,ai-agent,monitoring"
+        ).split(",")
+        if ns.strip()
+    ]
 
 # ── Remediation — CỐ Ý vẫn dùng Mock. Policy Engine hardcode risk=Risk.LOW +
 # rollback_tested=True (core/pipeline/runner.py) nên bất kỳ RCA nào đạt

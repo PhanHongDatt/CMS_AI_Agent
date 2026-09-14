@@ -75,3 +75,17 @@ async def get_autonomy() -> dict:
         resp = await client.get(f"{_api_url()}/autonomy")
         resp.raise_for_status()
         return resp.json()
+
+
+async def get_cluster_health() -> dict:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/cluster/health")
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_cluster_events() -> dict:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/cluster/events")
+        resp.raise_for_status()
+        return resp.json()
