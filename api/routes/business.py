@@ -1,11 +1,6 @@
-"""GET /business/metrics — số liệu nghiệp vụ ERPNext (khách hàng, dự án, thanh
-toán nhà thầu...) đọc qua Prometheus (business-metrics-exporter), dùng cho bot
-NL Q&A.
-
-LƯU Ý: "tồn kho" (stock/inventory) CHƯA có trong business-metrics-exporter
-(xem cluster-bootstrap/business-metrics-exporter/templates/configmap.yaml —
-chỉ export erpnext_customers_total/projects_total/tasks_overdue_total/
-contractor_payment_requests_total). Cần mở rộng exporter nếu muốn số liệu này.
+"""GET /business/metrics — số liệu nghiệp vụ ERPNext (khách hàng, dự án, task
+quá hạn, thanh toán nhà thầu, tồn kho, items, đơn bán/mua hàng) đọc qua
+Prometheus (business-metrics-exporter), dùng cho bot NL Q&A.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,6 +18,13 @@ _QUERIES = {
     "projects_by_status": "erpnext_projects_total",
     "tasks_overdue": "erpnext_tasks_overdue_total",
     "contractor_payment_requests_by_state": "erpnext_contractor_payment_requests_total",
+    "stock_qty_by_warehouse": "erpnext_stock_qty_total",
+    "stock_reserved_qty_by_warehouse": "erpnext_stock_reserved_qty_total",
+    "items_by_type": "erpnext_items_total",
+    "sales_orders_by_status": "erpnext_sales_orders_total",
+    "sales_orders_value_by_status": "erpnext_sales_orders_value_total",
+    "purchase_orders_by_status": "erpnext_purchase_orders_total",
+    "purchase_orders_value_by_status": "erpnext_purchase_orders_value_total",
 }
 
 
@@ -39,10 +41,6 @@ async def business_metrics(tools=Depends(get_prometheus_tools)):
             ]
         except MCPError as e:
             out[name] = {"error": str(e)}
-    out["_note"] = (
-        "Chưa có dữ liệu tồn kho (stock/inventory) — business-metrics-exporter "
-        "chưa export metric này."
-    )
     return out
 
 
