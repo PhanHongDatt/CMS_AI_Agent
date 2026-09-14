@@ -77,6 +77,33 @@ class KubernetesReadonlyTools:
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_cluster_health failed: {e}") from e
 
+    async def k8s_list_pods(self, namespace: str) -> ToolResult:
+        """List pods in a namespace with status/restart summary."""
+        try:
+            pods = await self._call(self._core.list_namespaced_pod, namespace=namespace)
+            pod_summary = [
+                {
+                    "name": p.metadata.name,
+                    "phase": p.status.phase,
+                    "ready": sum(1 for c in (p.status.container_statuses or []) if c.ready),
+                    "containers": len(p.status.container_statuses or []),
+                    "restarts": sum(c.restart_count for c in (p.status.container_statuses or [])),
+                    "node": p.spec.node_name,
+                }
+                for p in pods.items
+            ]
+            return ToolResult(
+                tool="k8s_list_pods",
+                kind=ToolKind.READ,
+                data={"pods": pod_summary, "pod_count": len(pod_summary)},
+                source_reference=_ref(namespace, "pods"),
+                fetched_at=_now(),
+            )
+        except MCPTimeoutError:
+            raise
+        except Exception as e:
+            raise MCPConnectionError(f"k8s_list_pods failed: {e}") from e
+
     async def k8s_get_pod_logs(
         self, namespace: str, pod_name: str, tail_lines: int = 100
     ) -> ToolResult:

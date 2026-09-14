@@ -40,3 +40,22 @@ async def cluster_events(
         except MCPError as e:
             out[ns] = [{"error": str(e)}]
     return out
+
+
+@router.get("/pods")
+async def cluster_pods(
+    namespace: str | None = None,
+    tools=Depends(get_k8s_tools),
+    namespaces: list[str] = Depends(get_k8s_namespaces),
+):
+    if tools is None:
+        raise HTTPException(status_code=503, detail="K8s evidence gathering not available")
+    target_namespaces = [namespace] if namespace else namespaces
+    out: dict[str, list] = {}
+    for ns in target_namespaces:
+        try:
+            result = await tools.k8s_list_pods(namespace=ns)
+            out[ns] = result.data["pods"]
+        except MCPError as e:
+            out[ns] = [{"error": str(e)}]
+    return out

@@ -121,6 +121,24 @@ def get_k8s_namespaces() -> list[str]:
         if ns.strip()
     ]
 
+
+# ── Prometheus (business metrics từ business-metrics-exporter + hạ tầng) ──────
+def _build_prometheus_tools():
+    from mcp.prometheus.readonly.tools import PrometheusReadonlyTools
+
+    base_url = os.getenv(
+        "PROMETHEUS_URL", "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+    )
+    return PrometheusReadonlyTools(base_url=base_url)
+
+
+_prometheus_tools = _build_prometheus_tools()
+
+
+def get_prometheus_tools():
+    return _prometheus_tools
+
+
 # ── Remediation — CỐ Ý vẫn dùng Mock. Policy Engine hardcode risk=Risk.LOW +
 # rollback_tested=True (core/pipeline/runner.py) nên bất kỳ RCA nào đạt
 # confidence>=0.80 sẽ được Policy tự ALLOW, BỎ QUA hoàn toàn bước duyệt

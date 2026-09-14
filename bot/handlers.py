@@ -10,8 +10,10 @@ from telegram.ext import ContextTypes
 from bot.api_client import (
     decide_approval,
     get_autonomy,
+    get_business_metrics,
     get_cluster_events,
     get_cluster_health,
+    get_cluster_pods,
     get_incident,
     get_pending_approvals,
     list_incidents,
@@ -293,16 +295,30 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     except Exception as e:
         cluster_events = {"error": f"không lấy được: {e}"}
 
+    try:
+        cluster_pods = await get_cluster_pods()
+    except Exception as e:
+        cluster_pods = {"error": f"không lấy được: {e}"}
+
+    try:
+        business_metrics = await get_business_metrics()
+    except Exception as e:
+        business_metrics = {"error": f"không lấy được: {e}"}
+
     system_prompt = (
         "Bạn là trợ lý DevOps của nền tảng Agentic (giám sát Kubernetes, nhận alert, "
-        "phân tích RCA, remediation). Trả lời NGẮN GỌN, rõ ràng, bằng tiếng Việt. "
-        "Dữ liệu bên dưới lấy TRỰC TIẾP từ Kubernetes API (không phải giả lập) — "
-        "dùng nó để trả lời câu hỏi về trạng thái cluster/node/pod/sự kiện. Nếu "
-        "người dùng muốn thao tác, gợi ý lệnh phù hợp (/status, /pending, /approve, "
-        "/deny, /incident, /pipeline, /autonomy).\n"
+        "phân tích RCA, remediation) kiêm trợ lý nghiệp vụ ERPNext. Trả lời NGẮN GỌN, "
+        "rõ ràng, bằng tiếng Việt. Dữ liệu bên dưới lấy TRỰC TIẾP từ Kubernetes API và "
+        "Prometheus (không phải giả lập). Nếu người dùng hỏi về tồn kho (stock/inventory) "
+        "— trả lời trung thực là hệ thống CHƯA thu thập số liệu này (business-metrics-exporter "
+        "chưa export). Nếu người dùng muốn thao tác, gợi ý lệnh phù hợp (/status, /pending, "
+        "/approve, /deny, /incident, /pipeline, /autonomy).\n"
         f"Sự cố hiện tại (JSON): {incidents_ctx}\n"
         f"Trạng thái node cluster (JSON): {json.dumps(cluster_health, ensure_ascii=False, default=str)}\n"
-        f"Sự kiện gần đây theo namespace (JSON): {json.dumps(cluster_events, ensure_ascii=False, default=str)[:3000]}"
+        f"Danh sách pod theo namespace (JSON): {json.dumps(cluster_pods, ensure_ascii=False, default=str)[:3000]}\n"
+        f"Sự kiện gần đây theo namespace (JSON): {json.dumps(cluster_events, ensure_ascii=False, default=str)[:2000]}\n"
+        f"Số liệu nghiệp vụ ERPNext — khách hàng/dự án/task quá hạn/thanh toán nhà thầu (JSON): "
+        f"{json.dumps(business_metrics, ensure_ascii=False, default=str)[:2000]}"
     )
 
     # Model PIN cứng (không dùng alias "latest") — cùng version với fallback

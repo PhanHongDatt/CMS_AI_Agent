@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from api.routes import alerts, approvals, autonomy, cluster, health, incidents, pipeline, webhook
+from api.routes import alerts, approvals, autonomy, business, cluster, health, incidents, pipeline, webhook
 from core.logging import configure_logging
 
 
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
     app.include_router(pipeline.router)
     app.include_router(webhook.router)
     app.include_router(cluster.router)
+    app.include_router(business.router)
 
     return app
 

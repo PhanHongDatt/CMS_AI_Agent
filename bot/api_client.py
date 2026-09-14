@@ -89,3 +89,17 @@ async def get_cluster_events() -> dict:
         resp = await client.get(f"{_api_url()}/cluster/events")
         resp.raise_for_status()
         return resp.json()
+
+
+async def get_cluster_pods() -> dict:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/cluster/pods")
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_business_metrics() -> dict:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/business/metrics")
+        resp.raise_for_status()
+        return resp.json()
