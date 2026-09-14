@@ -4,6 +4,7 @@ These tools NEVER modify cluster state. All calls go through the Kubernetes
 API with a least-privilege read-only service account.
 """
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -26,6 +27,14 @@ class KubernetesReadonlyTools:
 
     Pass `client` as the kubernetes.client.CoreV1Api / AppsV1Api etc.
     For tests, inject a mock client.
+
+    IMPORTANT: kubernetes-python's client is SYNCHRONOUS (blocking urllib3
+    calls). Every call is dispatched via asyncio.to_thread so it never blocks
+    the FastAPI/uvicorn event loop (a blocked loop makes /health unresponsive
+    → kubelet kills the pod on liveness-probe failure). `_request_timeout` is
+    also passed to bound the underlying socket call — without it, a silently
+    dropped connection (e.g. NetworkPolicy DROP, not REJECT) hangs forever
+    instead of failing fast.
     """
 
     def __init__(self, core_v1: Any, apps_v1: Any, timeout_seconds: float = 10.0) -> None:
@@ -33,10 +42,19 @@ class KubernetesReadonlyTools:
         self._apps = apps_v1
         self._timeout = timeout_seconds
 
+    async def _call(self, fn, /, *args, **kwargs):
+        kwargs.setdefault("_request_timeout", self._timeout)
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(fn, *args, **kwargs), timeout=self._timeout + 2
+            )
+        except TimeoutError as e:
+            raise MCPTimeoutError(f"{fn.__name__} timed out after {self._timeout}s") from e
+
     async def k8s_get_cluster_health(self) -> ToolResult:
         """Return node status summary and component statuses."""
         try:
-            nodes = self._core.list_node()
+            nodes = await self._call(self._core.list_node)
             node_summary = [
                 {
                     "name": n.metadata.name,
@@ -54,6 +72,8 @@ class KubernetesReadonlyTools:
                 source_reference=_ref("cluster", "nodes"),
                 fetched_at=_now(),
             )
+        except MCPTimeoutError:
+            raise
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_cluster_health failed: {e}") from e
 
@@ -61,7 +81,8 @@ class KubernetesReadonlyTools:
         self, namespace: str, pod_name: str, tail_lines: int = 100
     ) -> ToolResult:
         try:
-            logs = self._core.read_namespaced_pod_log(
+            logs = await self._call(
+                self._core.read_namespaced_pod_log,
                 name=pod_name,
                 namespace=namespace,
                 tail_lines=tail_lines,
@@ -73,6 +94,8 @@ class KubernetesReadonlyTools:
                 source_reference=_ref(namespace, "pods", pod_name) + "/logs",
                 fetched_at=_now(),
             )
+        except MCPTimeoutError:
+            raise
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_pod_logs failed: {e}") from e
 
@@ -83,7 +106,7 @@ class KubernetesReadonlyTools:
             kwargs: dict[str, Any] = {"namespace": namespace}
             if field_selector:
                 kwargs["field_selector"] = field_selector
-            events = self._core.list_namespaced_event(**kwargs)
+            events = await self._call(self._core.list_namespaced_event, **kwargs)
             items = [
                 {
                     "reason": e.reason,
@@ -102,6 +125,8 @@ class KubernetesReadonlyTools:
                 source_reference=_ref(namespace, "events"),
                 fetched_at=_now(),
             )
+        except MCPTimeoutError:
+            raise
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_events failed: {e}") from e
 
@@ -111,13 +136,17 @@ class KubernetesReadonlyTools:
         try:
             kind_lower = kind.lower()
             if kind_lower == "pod":
-                obj = self._core.read_namespaced_pod(name=name, namespace=namespace)
+                obj = await self._call(self._core.read_namespaced_pod, name=name, namespace=namespace)
             elif kind_lower == "deployment":
-                obj = self._apps.read_namespaced_deployment(name=name, namespace=namespace)
+                obj = await self._call(
+                    self._apps.read_namespaced_deployment, name=name, namespace=namespace
+                )
             elif kind_lower == "service":
-                obj = self._core.read_namespaced_service(name=name, namespace=namespace)
+                obj = await self._call(
+                    self._core.read_namespaced_service, name=name, namespace=namespace
+                )
             elif kind_lower == "node":
-                obj = self._core.read_node(name=name)
+                obj = await self._call(self._core.read_node, name=name)
             else:
                 raise ValueError(f"Unsupported resource kind: {kind}")
 
@@ -128,14 +157,16 @@ class KubernetesReadonlyTools:
                 source_reference=_ref(namespace, kind_lower + "s", name),
                 fetched_at=_now(),
             )
-        except ValueError:
+        except (ValueError, MCPTimeoutError):
             raise
         except Exception as e:
             raise MCPConnectionError(f"k8s_describe_resource failed: {e}") from e
 
     async def k8s_get_storage_health(self, namespace: str = "default") -> ToolResult:
         try:
-            pvcs = self._core.list_namespaced_persistent_volume_claim(namespace=namespace)
+            pvcs = await self._call(
+                self._core.list_namespaced_persistent_volume_claim, namespace=namespace
+            )
             pvc_summary = [
                 {"name": pvc.metadata.name, "phase": pvc.status.phase}
                 for pvc in pvcs.items
@@ -147,5 +178,7 @@ class KubernetesReadonlyTools:
                 source_reference=_ref(namespace, "persistentvolumeclaims"),
                 fetched_at=_now(),
             )
+        except MCPTimeoutError:
+            raise
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_storage_health failed: {e}") from e
