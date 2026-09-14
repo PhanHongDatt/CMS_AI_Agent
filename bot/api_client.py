@@ -103,3 +103,24 @@ async def get_business_metrics() -> dict:
         resp = await client.get(f"{_api_url()}/business/metrics")
         resp.raise_for_status()
         return resp.json()
+
+
+async def get_business_customers() -> list[dict]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/business/customers")
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_business_projects() -> list[dict]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/business/projects")
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_business_tasks() -> list[dict]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{_api_url()}/business/tasks")
+        resp.raise_for_status()
+        return resp.json()

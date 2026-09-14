@@ -135,6 +135,22 @@ def _build_prometheus_tools():
 _prometheus_tools = _build_prometheus_tools()
 
 
+# ── ERPNext DB (chi tiết nghiệp vụ — tên khách hàng/dự án/task — mà
+# Prometheus không lưu được, chỉ có số liệu tổng hợp). User "bizmetrics"
+# SELECT-only, cùng credential business-metrics-exporter dùng.
+def get_erp_db_config() -> dict | None:
+    password = os.getenv("ERP_DB_PASSWORD", "")
+    if not password:
+        return None
+    return {
+        "host": os.getenv("ERP_DB_HOST", "mariadb.mariadb.svc.cluster.local"),
+        "port": int(os.getenv("ERP_DB_PORT", "3306")),
+        "user": os.getenv("ERP_DB_USER", "bizmetrics"),
+        "password": password,
+        "database": os.getenv("ERP_DB_NAME", ""),
+    }
+
+
 def get_prometheus_tools():
     return _prometheus_tools
 

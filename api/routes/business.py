@@ -1,14 +1,92 @@
 """GET /business/metrics — số liệu nghiệp vụ ERPNext (khách hàng, dự án, task
 quá hạn, thanh toán nhà thầu, tồn kho, items, đơn bán/mua hàng) đọc qua
 Prometheus (business-metrics-exporter), dùng cho bot NL Q&A.
+
+GET /business/customers, /projects, /tasks — CHI TIẾT (tên, không chỉ số
+lượng). Prometheus chỉ lưu được số liệu tổng hợp (counter/gauge), KHÔNG lưu
+được text như tên khách hàng — nên các endpoint này đọc THẲNG MariaDB qua
+user "bizmetrics" (SELECT-only). Query CỐ ĐỊNH, whitelist — bot/LLM KHÔNG
+được tự viết SQL (tránh injection/rò rỉ dữ liệu ngoài ý muốn).
 """
 
+import asyncio
+
+import pymysql
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.deps import get_prometheus_tools
+from api.deps import get_erp_db_config, get_prometheus_tools
 from mcp.base import MCPError
 
 router = APIRouter(prefix="/business", tags=["business"])
+
+
+def _erp_query(config: dict, sql: str, limit: int = 20) -> list[dict]:
+    conn = pymysql.connect(
+        host=config["host"],
+        port=config["port"],
+        user=config["user"],
+        password=config["password"],
+        database=config["database"],
+        connect_timeout=10,
+        read_timeout=15,
+        cursorclass=pymysql.cursors.DictCursor,
+    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql, (limit,))
+            return cur.fetchall()
+    finally:
+        conn.close()
+
+
+@router.get("/customers")
+async def business_customers(limit: int = 20, config=Depends(get_erp_db_config)):
+    if config is None:
+        raise HTTPException(status_code=503, detail="ERPNext DB not configured")
+    try:
+        rows = await asyncio.to_thread(
+            _erp_query,
+            config,
+            "SELECT name, customer_name, disabled FROM `tabCustomer` ORDER BY creation DESC LIMIT %s",
+            limit,
+        )
+    except pymysql.Error as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return rows
+
+
+@router.get("/projects")
+async def business_projects(limit: int = 20, config=Depends(get_erp_db_config)):
+    if config is None:
+        raise HTTPException(status_code=503, detail="ERPNext DB not configured")
+    try:
+        rows = await asyncio.to_thread(
+            _erp_query,
+            config,
+            "SELECT name, project_name, status, expected_end_date FROM `tabProject` "
+            "WHERE docstatus < 2 ORDER BY creation DESC LIMIT %s",
+            limit,
+        )
+    except pymysql.Error as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return rows
+
+
+@router.get("/tasks")
+async def business_tasks(limit: int = 20, config=Depends(get_erp_db_config)):
+    if config is None:
+        raise HTTPException(status_code=503, detail="ERPNext DB not configured")
+    try:
+        rows = await asyncio.to_thread(
+            _erp_query,
+            config,
+            "SELECT name, subject, status, exp_end_date FROM `tabTask` "
+            "WHERE docstatus < 2 ORDER BY creation DESC LIMIT %s",
+            limit,
+        )
+    except pymysql.Error as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return rows
 
 # Metric name → PromQL instant-query. Khớp đúng tên trong
 # cluster-bootstrap/business-metrics-exporter/templates/configmap.yaml.
