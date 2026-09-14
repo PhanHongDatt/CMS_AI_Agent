@@ -23,6 +23,7 @@ dependencies = [
     "anthropic>=0.30",
     "google-genai>=1.0",
     "openai>=1.50",
+    "kubernetes>=29",
     "respx>=0.21",
 ]
 
