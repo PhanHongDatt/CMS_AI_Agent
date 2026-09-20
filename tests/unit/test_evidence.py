@@ -61,9 +61,9 @@ class TestSanitizer:
         assert sanitized["metadata"]["name"] == "pod-1"
 
     def test_redacts_in_list(self):
-        data = ["normal", "token=abc123def456ghi789"]
+        data = ["normal", "token=fake-test-token-for-sanitizer"]
         sanitized = sanitize_evidence_value(data)
-        assert "abc123def456ghi789" not in str(sanitized)
+        assert "fake-test-token-for-sanitizer" not in str(sanitized)
 
     def test_passthrough_non_sensitive(self):
         assert sanitize_evidence_value("cpu_usage=95%") == "cpu_usage=95%"
