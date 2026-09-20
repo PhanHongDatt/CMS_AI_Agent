@@ -1,11 +1,12 @@
 """Gate G2: Kubernetes MCP read-only contract tests."""
 
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
+
 import pytest
 
 from mcp.base import ActionContext, MCPAuthorizationError, ToolKind
-from mcp.kubernetes.readonly.tools import KubernetesReadonlyTools
 from mcp.kubernetes.action.tools import KubernetesActionTools
+from mcp.kubernetes.readonly.tools import KubernetesReadonlyTools
 
 
 def _mock_node(name: str, ready: bool = True) -> MagicMock:
@@ -152,9 +153,9 @@ class TestKubernetesAction:
     @pytest.mark.asyncio
     async def test_non_whitelisted_action_rejected(self):
         """MCP must reject any action not in whitelist."""
-        tools = KubernetesActionTools(_mock_core(), _mock_apps())
         ctx = self._valid_ctx()
         # Simulate calling a non-whitelisted action via _validate directly
         from mcp.kubernetes.action.tools import _validate
+
         with pytest.raises(MCPAuthorizationError, match="not whitelisted"):
             _validate(ctx, "kubectl_exec")

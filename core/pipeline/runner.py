@@ -11,24 +11,22 @@ Safety invariants enforced at every step:
 - Verification FAIL → rollback if rollback_tested, then escalate.
 """
 
-import asyncio
-import time
 import uuid
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 from core.approval.manager import ApprovalManager, ApprovalRequest, ApprovalStatus
 from core.approval.notifier import NotificationPayload, TelegramNotifier
 from core.confidence.engine import ConfidenceEngine
 from core.incident.manager import IncidentManager
+from core.llm.errors import LLMUnavailableError
 from core.logging import get_logger
 from core.pipeline.context import PipelineRun, PipelineStage
-from core.pipeline.evidence_gatherer import EvidenceGatherer, MockActionTools
+from core.pipeline.evidence_gatherer import EvidenceGatherer
 from core.policy.engine import PolicyEngine, PolicyRequest
-from core.llm.errors import LLMUnavailableError
 from core.rca.agent import RCAAgent, RCAParseError
 from core.remediation.executor import RemediationExecutor, RemediationRequest
 from core.verification.engine import VerificationEngine
-from schemas.evidence import Evidence
 from schemas.incident import Incident, IncidentStatus
 from schemas.policy import PolicyDecisionEnum, Risk
 
@@ -160,7 +158,11 @@ class PipelineRunner:
         run.stage = PipelineStage.REMEDIATING
         self._incidents.transition(incident_id, IncidentStatus.EXECUTING)
 
-        safe_action = action_type if action_type in ("restart_pod", "scale_deployment", "rollback_deployment") else "restart_pod"
+        safe_action = (
+            action_type
+            if action_type in ("restart_pod", "scale_deployment", "rollback_deployment")
+            else "restart_pod"
+        )
         action_params = _build_action_params(safe_action, run)
         remediation_req = RemediationRequest(
             action_name=safe_action,
@@ -172,7 +174,9 @@ class PipelineRunner:
 
         action = await self._executor.execute(remediation_req)
         run.action = action
-        logger.info("pipeline_remediation_complete", incident_id=incident_id, status=action.status.value)
+        logger.info(
+            "pipeline_remediation_complete", incident_id=incident_id, status=action.status.value
+        )
 
         # ── P10: Verification ─────────────────────────────────────────────────
         run.stage = PipelineStage.VERIFYING
@@ -188,6 +192,7 @@ class PipelineRunner:
         run.verification = verification
 
         from schemas.verification import VerificationResult
+
         if verification.result == VerificationResult.PASS:
             run.stage = PipelineStage.RESOLVED
             self._incidents.transition(incident_id, IncidentStatus.RESOLVED)
@@ -202,6 +207,11 @@ class PipelineRunner:
 
     async def _handle_approval(self, run: PipelineRun, action_type: str) -> bool:
         """Submit approval request, notify Telegram, wait for decision. Returns True if approved."""
+        # These are always set by _execute before _handle_approval is called
+        assert run.policy_decision is not None, "policy_decision must be set before approval"
+        assert run.rca is not None, "rca must be set before approval"
+        assert run.confidence is not None, "confidence must be set before approval"
+
         incident_id = str(run.incident.id)
         request_id = str(uuid.uuid4())
         run.approval_request_id = request_id
@@ -241,7 +251,9 @@ class PipelineRunner:
 
         if decision.status == ApprovalStatus.APPROVED:
             self._incidents.transition(incident_id, IncidentStatus.APPROVED)
-            logger.info("pipeline_approval_granted", incident_id=incident_id, by=decision.decided_by)
+            logger.info(
+                "pipeline_approval_granted", incident_id=incident_id, by=decision.decided_by
+            )
             return True
         else:
             run.stage = PipelineStage.DENIED
@@ -253,23 +265,29 @@ class PipelineRunner:
             )
             return False
 
-    def _make_evidence_fetcher(self):
-        async def fetch(incident_id: str) -> list[dict]:
+    def _make_evidence_fetcher(
+        self,
+    ) -> Callable[[str], Coroutine[Any, Any, list[dict[str, object]]]]:
+        async def fetch(incident_id: str) -> list[dict[str, object]]:
             run = self._runs.get(incident_id)
             if run and run.evidence:
-                return [{"id": str(e.id), "source": e.source.value, "value": e.value} for e in run.evidence]
+                return [
+                    {"id": str(e.id), "source": e.source.value, "value": e.value}
+                    for e in run.evidence
+                ]
             return [{"id": str(uuid.uuid4()), "source": "prometheus", "value": "ok"}]
+
         return fetch
 
-    def _make_rollback_fn(self):
-        async def rollback(action) -> None:
+    def _make_rollback_fn(self) -> Callable[[Any], Coroutine[Any, Any, None]]:
+        async def rollback(action: Any) -> None:
             logger.warning("pipeline_rollback_triggered", action_id=action.id)
+
         return rollback
 
 
-def _build_action_params(action_name: str, run: "PipelineRun") -> dict:
-    """Build action params from alert labels and evidence — no hardcoded values."""
-    labels = run.incident.fingerprint  # fingerprint encodes the target
+def _build_action_params(action_name: str, run: "PipelineRun") -> dict[str, object]:
+    """Build action params from evidence entity field — no hardcoded values."""
     namespace = "default"
     pod_name = "unknown-pod"
     deployment = "unknown-deployment"
@@ -289,15 +307,21 @@ def _build_action_params(action_name: str, run: "PipelineRun") -> dict:
     if action_name == "restart_pod":
         return {"namespace": namespace, "pod_name": pod_name, "rollback_tested": True}
     elif action_name == "scale_deployment":
-        return {"namespace": namespace, "deployment": deployment, "replicas": 2, "rollback_tested": True}
+        return {
+            "namespace": namespace,
+            "deployment": deployment,
+            "replicas": 2,
+            "rollback_tested": True,
+        }
     elif action_name == "rollback_deployment":
         return {"namespace": namespace, "deployment": deployment, "rollback_tested": True}
     return {"namespace": namespace, "pod_name": pod_name, "rollback_tested": True}
 
 
-def _fallback_rca(evidence):
+def _fallback_rca(evidence: list[Any]) -> Any:
     """Return a minimal RCA when LLM parsing fails."""
     from schemas.rca import RCA
+
     return RCA(
         root_cause=None,
         evidence_ids=[str(e.id) for e in evidence],

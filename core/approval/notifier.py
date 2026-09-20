@@ -1,16 +1,15 @@
 """Notification interface.
 
 Channels: Telegram + Webhook.
-Notification includes: incident, severity, RCA, evidence, confidence, policy, action, risk, rollback status.
+Notification includes: incident, severity, RCA, evidence, confidence, policy, action, risk,
+rollback status.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
 
 import httpx
 
-from core.approval.manager import ApprovalRequest
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -46,7 +45,9 @@ class TelegramNotifier(Notifier):
         url = f"https://api.telegram.org/bot{self._bot_token}/sendMessage"
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
-                resp = await client.post(url, json={"chat_id": self._chat_id, "text": text, "parse_mode": "HTML"})
+                resp = await client.post(
+                    url, json={"chat_id": self._chat_id, "text": text, "parse_mode": "HTML"}
+                )
                 resp.raise_for_status()
                 logger.info("telegram_notification_sent", incident_id=payload.incident_id)
                 return True
@@ -65,7 +66,11 @@ class TelegramNotifier(Notifier):
             f"Policy: {p.policy_decision}\n"
             f"Action: {p.proposed_action}\n"
             f"Risk: {p.risk} | Rollback tested: {rollback}\n"
-            + (f"Approval ID: <code>{p.approval_request_id}</code>" if p.approval_request_id else "")
+            + (
+                f"Approval ID: <code>{p.approval_request_id}</code>"
+                if p.approval_request_id
+                else ""
+            )
         )
 
 

@@ -1,6 +1,5 @@
 """Gate G10: Verification + Rollback tests."""
 
-import asyncio
 import uuid
 from unittest.mock import AsyncMock
 

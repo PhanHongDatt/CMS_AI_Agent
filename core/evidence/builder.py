@@ -1,9 +1,9 @@
 """Evidence context builder — assembles Evidence into an LLM-safe prompt block."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from schemas.evidence import Evidence, TrustLevel
 from core.evidence.sanitizer import wrap_evidence_for_prompt
+from schemas.evidence import Evidence, TrustLevel
 
 _STALE_THRESHOLD_SECONDS = 3600  # 1 hour
 
@@ -24,10 +24,10 @@ class EvidenceContextBuilder:
         return wrap_evidence_for_prompt(raw)
 
     def _is_valid(self, e: Evidence) -> bool:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ttl = e.ttl_expires_at
         if ttl.tzinfo is None:
-            ttl = ttl.replace(tzinfo=timezone.utc)
+            ttl = ttl.replace(tzinfo=UTC)
         return ttl > now
 
     def _format_item(self, index: int, e: Evidence) -> str:

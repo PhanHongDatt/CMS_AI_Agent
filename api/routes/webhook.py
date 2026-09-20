@@ -97,4 +97,4 @@ async def alertmanager_webhook(
 
 def _derive_fingerprint(labels: dict) -> str:
     key = "|".join(f"{k}={v}" for k, v in sorted(labels.items()))
-    return hashlib.md5(key.encode()).hexdigest()
+    return hashlib.sha256(key.encode()).hexdigest()[:16]

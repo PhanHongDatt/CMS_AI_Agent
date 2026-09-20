@@ -47,7 +47,7 @@ async def business_customers(limit: int = 20, config=Depends(get_erp_db_config))
         rows = await asyncio.to_thread(
             _erp_query,
             config,
-            "SELECT name, customer_name, disabled FROM `tabCustomer` ORDER BY creation DESC LIMIT %s",
+            "SELECT name, customer_name, disabled FROM `tabCustomer` ORDER BY creation DESC LIMIT %s",  # noqa: E501
             limit,
         )
     except pymysql.Error as e:
@@ -87,6 +87,7 @@ async def business_tasks(limit: int = 20, config=Depends(get_erp_db_config)):
     except pymysql.Error as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     return rows
+
 
 # Metric name → PromQL instant-query. Khớp đúng tên trong
 # cluster-bootstrap/business-metrics-exporter/templates/configmap.yaml.

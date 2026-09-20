@@ -1,7 +1,6 @@
 """Telegram bot command handlers — all state access via API HTTP client."""
 
 import json
-import os
 
 import httpx
 from telegram import Update
@@ -123,7 +122,9 @@ async def cmd_incident(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     if inc is None:
-        await update.message.reply_text(f"Incident <code>{context.args[0]}</code> not found.", parse_mode="HTML")
+        await update.message.reply_text(
+            f"Incident <code>{context.args[0]}</code> not found.", parse_mode="HTML"
+        )
         return
 
     text = (
@@ -324,9 +325,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         "gợi ý lệnh phù hợp (/status, /pending, /approve, /deny, /incident, /pipeline, "
         "/autonomy).\n"
         f"Sự cố hiện tại (JSON): {incidents_ctx}\n"
-        f"Trạng thái node cluster (JSON): {json.dumps(cluster_health, ensure_ascii=False, default=str)}\n"
-        f"Danh sách pod theo namespace (JSON): {json.dumps(cluster_pods, ensure_ascii=False, default=str)[:3000]}\n"
-        f"Sự kiện gần đây theo namespace (JSON): {json.dumps(cluster_events, ensure_ascii=False, default=str)[:2000]}\n"
+        f"Trạng thái node cluster (JSON): {json.dumps(cluster_health, ensure_ascii=False, default=str)}\n"  # noqa: E501
+        f"Danh sách pod theo namespace (JSON): {json.dumps(cluster_pods, ensure_ascii=False, default=str)[:3000]}\n"  # noqa: E501
+        f"Sự kiện gần đây theo namespace (JSON): {json.dumps(cluster_events, ensure_ascii=False, default=str)[:2000]}\n"  # noqa: E501
         f"Số liệu nghiệp vụ tổng hợp — khách hàng/dự án/task quá hạn/thanh toán nhà thầu/"
         f"tồn kho/items/đơn bán-mua hàng (JSON): "
         f"{json.dumps(business_metrics, ensure_ascii=False, default=str)[:2000]}\n"

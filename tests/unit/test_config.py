@@ -12,6 +12,7 @@ class TestConfig:
         monkeypatch.setenv("LLM_GATEWAY_API_KEY", "change-me")
 
         from core.config import Settings
+
         with pytest.raises((ValidationError, ValueError)):
             Settings()
 
@@ -22,6 +23,7 @@ class TestConfig:
         monkeypatch.setenv("LLM_GATEWAY_API_KEY", "real-key-abc123")
 
         from core.config import Settings
+
         s = Settings()
         assert s.llm_gateway_api_key == "real-key-abc123"
         assert s.cost_limit_per_incident == 1.00
@@ -34,6 +36,7 @@ class TestConfig:
         monkeypatch.delenv("LLM_GATEWAY_API_KEY", raising=False)
 
         from core.config import Settings
+
         with pytest.raises((ValidationError, ValueError)):
             Settings()
 
@@ -45,5 +48,6 @@ class TestConfig:
         monkeypatch.setenv("APP_ENV", "production")
 
         from core.config import Settings
+
         s = Settings()
         assert s.is_production is True

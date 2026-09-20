@@ -1,7 +1,5 @@
 """POST /alerts — submit alert and trigger pipeline as background task."""
 
-import asyncio
-
 from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel
 

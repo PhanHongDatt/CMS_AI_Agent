@@ -1,7 +1,9 @@
 import logging
 import sys
 import uuid
+from collections.abc import Mapping, MutableMapping
 from contextvars import ContextVar
+from typing import Any
 
 import structlog
 
@@ -19,24 +21,25 @@ def set_trace_id(trace_id: str | None = None) -> str:
 
 
 def _add_trace_id(
-    logger: logging.Logger, method_name: str, event_dict: dict
-) -> dict:
+    logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+) -> Mapping[str, Any]:
     event_dict["trace_id"] = get_trace_id()
     return event_dict
 
 
 def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None:
-    shared_processors: list = [
+    shared_processors: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         _add_trace_id,
     ]
 
-    if log_format == "console":
-        renderer = structlog.dev.ConsoleRenderer()
-    else:
-        renderer = structlog.processors.JSONRenderer()
+    renderer: structlog.types.Processor = (
+        structlog.dev.ConsoleRenderer()
+        if log_format == "console"
+        else structlog.processors.JSONRenderer()
+    )
 
     structlog.configure(
         processors=shared_processors
@@ -60,4 +63,4 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
 
 
 def get_logger(name: str = __name__) -> structlog.stdlib.BoundLogger:
-    return structlog.get_logger(name)
+    return structlog.get_logger(name)  # type: ignore[no-any-return]

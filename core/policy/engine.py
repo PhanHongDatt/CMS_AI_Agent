@@ -60,9 +60,7 @@ class PolicyEngine:
             rule_matched=rule,
         )
 
-    def _match_rules(
-        self, req: PolicyRequest, score: float
-    ) -> tuple[PolicyDecisionEnum, str, str]:
+    def _match_rules(self, req: PolicyRequest, score: float) -> tuple[PolicyDecisionEnum, str, str]:
         # Rule 1: CRITICAL severity → always require approval
         if req.severity == Severity.CRITICAL:
             return (

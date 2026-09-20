@@ -7,7 +7,6 @@ Rules:
 - Only correlated if same domain (infrastructure vs business).
 """
 
-import hashlib
 import time
 from dataclasses import dataclass, field
 
@@ -16,7 +15,7 @@ from dataclasses import dataclass, field
 class AlertInput:
     source: str
     fingerprint: str
-    domain: str          # "infrastructure" | "business"
+    domain: str  # "infrastructure" | "business"
     severity: str
     labels: dict[str, str] = field(default_factory=dict)
     annotations: dict[str, str] = field(default_factory=dict)
@@ -25,7 +24,7 @@ class AlertInput:
 
 @dataclass
 class CorrelationResult:
-    incident_id: str | None   # None = new incident needed
+    incident_id: str | None  # None = new incident needed
     is_duplicate: bool
     fingerprint: str
 
@@ -78,7 +77,8 @@ class AlertCorrelator:
 
     def _evict_stale(self, now: float) -> None:
         expired = [
-            k for k, (_, last_seen, _) in self._active.items()
+            k
+            for k, (_, last_seen, _) in self._active.items()
             if now - last_seen > self._dedup_window
         ]
         for k in expired:

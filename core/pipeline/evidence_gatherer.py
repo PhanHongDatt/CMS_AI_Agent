@@ -4,8 +4,7 @@ Real implementation would call MCP read tools (Kubernetes, Prometheus, etc.).
 Mock returns synthetic evidence so the pipeline can run without real infra.
 """
 
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 from core.logging import get_logger
@@ -23,7 +22,7 @@ class MockEvidenceGatherer:
     """Returns synthetic evidence for simulation / testing mode."""
 
     async def gather(self, incident: Incident) -> list[Evidence]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ttl = now + timedelta(hours=1)
         return [
             Evidence(
@@ -56,13 +55,22 @@ class MockEvidenceGatherer:
 class MockActionTools:
     """Simulates MCP action tools without touching real infrastructure."""
 
-    async def restart_pod(self, ctx, namespace: str, pod_name: str) -> dict:
+    async def restart_pod(self, ctx: Any, namespace: str, pod_name: str) -> dict[str, object]:
         return {"restarted": True, "namespace": namespace, "pod": pod_name}
 
-    async def scale_deployment(self, ctx, namespace: str, deployment: str, replicas: int) -> dict:
-        return {"scaled": True, "namespace": namespace, "deployment": deployment, "replicas": replicas}
+    async def scale_deployment(
+        self, ctx: Any, namespace: str, deployment: str, replicas: int
+    ) -> dict[str, object]:
+        return {
+            "scaled": True,
+            "namespace": namespace,
+            "deployment": deployment,
+            "replicas": replicas,
+        }
 
-    async def rollback_deployment(self, ctx, namespace: str, deployment: str) -> dict:
+    async def rollback_deployment(
+        self, ctx: Any, namespace: str, deployment: str
+    ) -> dict[str, object]:
         return {"rolled_back": True, "namespace": namespace, "deployment": deployment}
 
 
@@ -84,7 +92,7 @@ class RealK8sEvidenceGatherer:
         self._namespaces = namespaces
 
     async def gather(self, incident: Incident) -> list[Evidence]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ttl = now + timedelta(hours=1)
         evidence: list[Evidence] = []
 

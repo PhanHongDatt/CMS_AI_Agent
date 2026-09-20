@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 from schemas.action import Action
 from schemas.confidence import Confidence

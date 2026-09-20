@@ -5,7 +5,6 @@ Run modes:
   - webhook (production): set TELEGRAM_WEBHOOK_URL in .env, bot registers itself
 """
 
-import asyncio
 import os
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters

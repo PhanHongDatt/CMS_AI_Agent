@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from core.llm.errors import LLMBudgetExceededError
 
@@ -76,7 +76,7 @@ class CostTracker:
         self._reset_daily_if_needed()
         return self._daily.total_usd
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self) -> dict[str, object]:
         self._reset_daily_if_needed()
         return {
             "daily_cost_usd": self._daily.total_usd,

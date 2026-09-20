@@ -12,10 +12,8 @@ Invariants:
 
 import asyncio
 import time
-import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 from core.logging import get_logger
 
@@ -78,7 +76,9 @@ class ApprovalManager:
             risk=request.risk,
         )
 
-    def decide(self, request_id: str, approved: bool, decided_by: str, reason: str | None = None) -> ApprovalDecision:
+    def decide(
+        self, request_id: str, approved: bool, decided_by: str, reason: str | None = None
+    ) -> ApprovalDecision:
         """Record a human decision. Idempotent — duplicate calls return existing decision."""
         if request_id in self._decisions:
             logger.info("approval_duplicate_ignored", request_id=request_id)
@@ -87,12 +87,20 @@ class ApprovalManager:
         status = ApprovalStatus.APPROVED if approved else ApprovalStatus.REJECTED
         decision = ApprovalDecision(
             request_id=request_id,
-            incident_id=self._pending.get(request_id, ApprovalRequest(
-                request_id=request_id, incident_id="unknown",
-                policy_decision_id="", action_name="", risk="",
-                rollback_tested=False, proposed_evidence_summary="",
-                rca_summary="", confidence_score=0.0
-            )).incident_id,
+            incident_id=self._pending.get(
+                request_id,
+                ApprovalRequest(
+                    request_id=request_id,
+                    incident_id="unknown",
+                    policy_decision_id="",
+                    action_name="",
+                    risk="",
+                    rollback_tested=False,
+                    proposed_evidence_summary="",
+                    rca_summary="",
+                    confidence_score=0.0,
+                ),
+            ).incident_id,
             status=status,
             decided_by=decided_by,
             decided_at=time.time(),
@@ -126,7 +134,7 @@ class ApprovalManager:
 
         try:
             return await asyncio.wait_for(asyncio.shield(future), timeout=self._timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self._futures.pop(request_id, None)
             if not future.done():
                 future.cancel()

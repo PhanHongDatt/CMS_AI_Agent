@@ -2,8 +2,6 @@
 
 import uuid
 
-import pytest
-
 from core.policy.engine import PolicyEngine, PolicyRequest
 from schemas.confidence import Confidence, ConfidenceSubScores, ConfidenceWeights
 from schemas.incident import Severity
@@ -129,9 +127,7 @@ class TestPolicyEngine:
         """Unknown combination → DEFAULT_DENY."""
         engine = PolicyEngine()
         # MEDIUM risk, staging, high confidence, rollback tested
-        pd = engine.evaluate(
-            _req(risk=Risk.MEDIUM, environment="staging", confidence_score=0.85)
-        )
+        pd = engine.evaluate(_req(risk=Risk.MEDIUM, environment="staging", confidence_score=0.85))
         # MEDIUM in staging is not covered by prod rule → falls to DEFAULT_DENY
         assert pd.decision == PolicyDecisionEnum.DENY
         assert pd.rule_matched == "DEFAULT_DENY"

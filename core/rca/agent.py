@@ -7,11 +7,12 @@ Flow: Alert → Evidence → Context → LLM → Structured RCA
 """
 
 import json
+from collections.abc import Mapping
 from dataclasses import replace
 
 from core.evidence.builder import EvidenceContextBuilder
-from core.llm.gateway import LLMGateway
 from core.llm.base import LLMRequest
+from core.llm.gateway import LLMGateway
 from core.logging import get_logger
 from core.rca.prompts import PROMPT_VERSION, RCA_SYSTEM_PROMPT
 from schemas.evidence import Evidence
@@ -87,7 +88,7 @@ class RCAAgent:
                 request = replace(
                     request,
                     user_message=user_message
-                    + f"\n\nPrevious response was not valid JSON: {e}. Respond with valid JSON only.",
+                    + f"\n\nPrevious response was not valid JSON: {e}. Respond with valid JSON only.",  # noqa: E501
                 )
 
         raise RCAParseError("Unreachable")
@@ -95,7 +96,7 @@ class RCAAgent:
     def _parse_and_validate(
         self,
         raw: str,
-        evidence_id_map: dict,
+        evidence_id_map: Mapping[str, object],
         model: str,
         model_output_quality: float,
     ) -> RCA:
@@ -104,7 +105,7 @@ class RCAAgent:
         if cleaned.startswith("```"):
             lines = cleaned.splitlines()
             cleaned = "\n".join(
-                l for l in lines if not l.strip().startswith("```")
+                line for line in lines if not line.strip().startswith("```")
             ).strip()
 
         data = json.loads(cleaned)

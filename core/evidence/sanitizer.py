@@ -12,10 +12,10 @@ from typing import Any
 
 # Patterns that suggest a credential was accidentally captured in a log/metric
 _SECRET_PATTERNS = [
-    re.compile(r'(?i)(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*\S+'),
-    re.compile(r'AKIA[0-9A-Z]{16}'),                      # AWS access key
-    re.compile(r'(?i)bearer\s+[A-Za-z0-9\-_\.]{20,}'),   # Bearer token
-    re.compile(r'(?i)-----BEGIN\s+(RSA|EC|PRIVATE)\s+KEY-----'),  # PEM key
+    re.compile(r"(?i)(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*\S+"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),  # AWS access key
+    re.compile(r"(?i)bearer\s+[A-Za-z0-9\-_\.]{20,}"),  # Bearer token
+    re.compile(r"(?i)-----BEGIN\s+(RSA|EC|PRIVATE)\s+KEY-----"),  # PEM key
 ]
 
 _REDACTED = "[REDACTED]"
@@ -26,7 +26,7 @@ _DATA_ENVELOPE_CLOSE = "--- EVIDENCE DATA END ---"
 
 
 _SENSITIVE_KEYS = re.compile(
-    r'(?i)^(password|passwd|secret|token|api[_-]?key|apikey|auth|credential)$'
+    r"(?i)^(password|passwd|secret|token|api[_-]?key|apikey|auth|credential)$"
 )
 
 

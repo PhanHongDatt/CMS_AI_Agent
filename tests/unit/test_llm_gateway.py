@@ -7,7 +7,6 @@ from core.llm.cost_tracker import CostTracker
 from core.llm.errors import (
     LLMAuthError,
     LLMBudgetExceededError,
-    LLMCircuitOpenError,
     LLMRateLimitError,
     LLMTimeoutError,
     LLMUnavailableError,
@@ -15,7 +14,7 @@ from core.llm.errors import (
 from core.llm.gateway import LLMGateway
 
 
-def _make_response(provider: str = "claude", model: str = "claude-sonnet-4-6") -> LLMResponse:
+def _make_response(provider: str = "openai", model: str = "gpt-4.1-mini") -> LLMResponse:
     return LLMResponse(
         content='{"root_cause": "OOM"}',
         model=model,
@@ -52,7 +51,7 @@ class MockProvider(LLMProvider):
 
 def _make_gateway(primary_responses, fallback_responses=None, **kwargs) -> LLMGateway:
     providers: dict[str, LLMProvider] = {
-        "claude": MockProvider("claude", primary_responses),
+        "openai": MockProvider("openai", primary_responses),
     }
     if fallback_responses is not None:
         providers["gemini"] = MockProvider("gemini", fallback_responses)
@@ -75,7 +74,7 @@ class TestGatewaySuccess:
         gw = _make_gateway([_make_response()])
         resp = await gw.complete(_make_request())
         assert resp.content == '{"root_cause": "OOM"}'
-        assert resp.provider == "claude"
+        assert resp.provider == "openai"
 
     @pytest.mark.asyncio
     async def test_cost_recorded_after_success(self):
@@ -90,7 +89,7 @@ class TestGatewaySuccess:
         await gw.complete(_make_request())
         m = gw.get_metrics()
         assert "circuit_breakers" in m
-        assert "claude" in m["circuit_breakers"]
+        assert "openai" in m["circuit_breakers"]
 
 
 class TestGatewayRetry:
@@ -114,9 +113,9 @@ class TestGatewayRetry:
 
     @pytest.mark.asyncio
     async def test_does_not_retry_auth_error(self):
-        primary = MockProvider("claude", [LLMAuthError("bad key"), _make_response()])
+        primary = MockProvider("openai", [LLMAuthError("bad key"), _make_response()])
         cost = CostTracker()
-        gw = LLMGateway({"claude": primary}, cost)
+        gw = LLMGateway({"openai": primary}, cost)
         with pytest.raises(LLMUnavailableError):
             await gw.complete(_make_request())
         assert primary._call_count == 1  # no retry
@@ -124,11 +123,16 @@ class TestGatewayRetry:
     @pytest.mark.asyncio
     async def test_max_retries_not_exceeded(self):
         # 3 rate limit errors → should give up after 2 retries (3 total attempts)
-        primary = MockProvider("claude", [
-            LLMRateLimitError("r"), LLMRateLimitError("r"), LLMRateLimitError("r"),
-        ])
+        primary = MockProvider(
+            "openai",
+            [
+                LLMRateLimitError("r"),
+                LLMRateLimitError("r"),
+                LLMRateLimitError("r"),
+            ],
+        )
         cost = CostTracker()
-        gw = LLMGateway({"claude": primary}, cost, failure_threshold=10)
+        gw = LLMGateway({"openai": primary}, cost, failure_threshold=10)
         with pytest.raises(LLMUnavailableError):
             await gw.complete(_make_request())
         assert primary._call_count == 3  # initial + 2 retries
@@ -166,24 +170,29 @@ class TestGatewayFallback:
 class TestGatewayCircuitBreaker:
     @pytest.mark.asyncio
     async def test_circuit_opens_after_failures(self):
-        primary = MockProvider("claude", [
-            LLMTimeoutError("t"), LLMTimeoutError("t"), LLMTimeoutError("t"),
-        ])
+        primary = MockProvider(
+            "openai",
+            [
+                LLMTimeoutError("t"),
+                LLMTimeoutError("t"),
+                LLMTimeoutError("t"),
+            ],
+        )
         cost = CostTracker()
-        gw = LLMGateway({"claude": primary}, cost, failure_threshold=3)
+        gw = LLMGateway({"openai": primary}, cost, failure_threshold=3)
         with pytest.raises(LLMUnavailableError):
             await gw.complete(_make_request())
         # Circuit should now be open
-        assert gw.get_metrics()["circuit_breakers"]["claude"] == "OPEN"
+        assert gw.get_metrics()["circuit_breakers"]["openai"] == "OPEN"
 
 
 class TestGatewayBudget:
     @pytest.mark.asyncio
     async def test_raises_budget_exceeded_before_calling_provider(self):
-        primary = MockProvider("claude", [_make_response()])
+        primary = MockProvider("openai", [_make_response()])
         cost = CostTracker(cost_limit_per_incident=0.0001, cost_limit_daily=100.0)
         cost.record("inc-1", 0.0001, 10, 20)
-        gw = LLMGateway({"claude": primary}, cost)
+        gw = LLMGateway({"openai": primary}, cost)
         with pytest.raises(LLMBudgetExceededError):
             await gw.complete(_make_request(incident_id="inc-1"))
         assert primary._call_count == 0  # budget check stops before API call

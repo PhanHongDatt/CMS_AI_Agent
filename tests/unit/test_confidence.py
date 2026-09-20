@@ -1,13 +1,10 @@
 """Gate G6: Confidence Engine tests — all deterministic."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-
-import pytest
+from datetime import UTC, datetime, timedelta
 
 from core.confidence.engine import ConfidenceEngine
-from schemas.confidence import Confidence
-from schemas.evidence import Evidence, EvidenceSource, TrustLevel
+from schemas.evidence import Evidence, EvidenceSource
 from schemas.rca import RCA
 
 
@@ -18,7 +15,7 @@ def _ev(
     entity: str = "api",
     metric: str = "up",
 ) -> Evidence:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Evidence(
         incident_id=uuid.uuid4(),
         source=source,

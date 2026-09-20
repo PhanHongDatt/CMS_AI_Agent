@@ -1,9 +1,7 @@
 """Gate G2: Prometheus MCP read-only contract tests."""
 
-import json
-import pytest
 import httpx
-from unittest.mock import AsyncMock, patch, MagicMock
+import pytest
 
 from mcp.base import MCPConnectionError, MCPTimeoutError, ToolKind
 from mcp.prometheus.readonly.tools import PrometheusReadonlyTools

@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from core.logging import configure_logging, get_logger, get_trace_id, set_trace_id
 
 

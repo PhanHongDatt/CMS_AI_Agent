@@ -5,7 +5,7 @@ API with a least-privilege read-only service account.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from mcp.base import MCPConnectionError, MCPTimeoutError, ToolKind, ToolResult
@@ -14,7 +14,7 @@ _SOURCE = "kubernetes"
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _ref(namespace: str, resource: str, name: str = "") -> str:
@@ -42,7 +42,7 @@ class KubernetesReadonlyTools:
         self._apps = apps_v1
         self._timeout = timeout_seconds
 
-    async def _call(self, fn, /, *args, **kwargs):
+    async def _call(self, fn: Any, /, *args: Any, **kwargs: Any) -> Any:
         kwargs.setdefault("_request_timeout", self._timeout)
         try:
             return await asyncio.wait_for(
@@ -59,8 +59,7 @@ class KubernetesReadonlyTools:
                 {
                     "name": n.metadata.name,
                     "conditions": [
-                        {"type": c.type, "status": c.status}
-                        for c in (n.status.conditions or [])
+                        {"type": c.type, "status": c.status} for c in (n.status.conditions or [])
                     ],
                 }
                 for n in nodes.items
@@ -126,9 +125,7 @@ class KubernetesReadonlyTools:
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_pod_logs failed: {e}") from e
 
-    async def k8s_get_events(
-        self, namespace: str, field_selector: str = ""
-    ) -> ToolResult:
+    async def k8s_get_events(self, namespace: str, field_selector: str = "") -> ToolResult:
         try:
             kwargs: dict[str, Any] = {"namespace": namespace}
             if field_selector:
@@ -157,13 +154,13 @@ class KubernetesReadonlyTools:
         except Exception as e:
             raise MCPConnectionError(f"k8s_get_events failed: {e}") from e
 
-    async def k8s_describe_resource(
-        self, namespace: str, kind: str, name: str
-    ) -> ToolResult:
+    async def k8s_describe_resource(self, namespace: str, kind: str, name: str) -> ToolResult:
         try:
             kind_lower = kind.lower()
             if kind_lower == "pod":
-                obj = await self._call(self._core.read_namespaced_pod, name=name, namespace=namespace)
+                obj = await self._call(
+                    self._core.read_namespaced_pod, name=name, namespace=namespace
+                )
             elif kind_lower == "deployment":
                 obj = await self._call(
                     self._apps.read_namespaced_deployment, name=name, namespace=namespace
@@ -195,8 +192,7 @@ class KubernetesReadonlyTools:
                 self._core.list_namespaced_persistent_volume_claim, namespace=namespace
             )
             pvc_summary = [
-                {"name": pvc.metadata.name, "phase": pvc.status.phase}
-                for pvc in pvcs.items
+                {"name": pvc.metadata.name, "phase": pvc.status.phase} for pvc in pvcs.items
             ]
             return ToolResult(
                 tool="k8s_get_storage_health",

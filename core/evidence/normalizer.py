@@ -1,13 +1,13 @@
 """Normalize MCP ToolResult → Evidence schema."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from core.evidence.sanitizer import sanitize_evidence_value
 from mcp.base import ToolResult
 from schemas.evidence import Evidence, EvidenceSource, TrustLevel
-from core.evidence.sanitizer import sanitize_evidence_value
 
-_FRESHNESS_GOOD_SECONDS = 300      # 5 min
+_FRESHNESS_GOOD_SECONDS = 300  # 5 min
 _TTL_HOURS = 24
 
 _SOURCE_MAP: dict[str, EvidenceSource] = {
@@ -34,11 +34,11 @@ def normalize_mcp_result(
 ) -> Evidence:
     """Convert a ToolResult into a validated Evidence record."""
     fetched_at = datetime.fromisoformat(result.fetched_at)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Make fetched_at timezone-aware if naive
     if fetched_at.tzinfo is None:
-        fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+        fetched_at = fetched_at.replace(tzinfo=UTC)
 
     freshness_seconds = (now - fetched_at).total_seconds()
     ttl_expires_at = now + timedelta(hours=_TTL_HOURS)

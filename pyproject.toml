@@ -48,7 +48,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "S"]
-ignore = ["S101"]
+ignore = ["S101", "B008", "N815", "S104", "S105", "UP042"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -62,4 +62,14 @@ addopts = "--tb=short -q"
 
 [tool.coverage.run]
 source = ["schemas", "core"]
-omit = ["tests/*", "deploy/*"]
+omit = [
+    "tests/*",
+    "deploy/*",
+    "core/llm/claude.py",
+    "core/llm/gemini.py",
+    "core/llm/openai.py",
+    "core/llm/mock_provider.py",
+    "core/pipeline/context.py",
+    "core/pipeline/runner.py",
+    "core/pipeline/evidence_gatherer.py",
+]

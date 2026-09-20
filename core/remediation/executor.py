@@ -57,7 +57,7 @@ class RemediationRequest:
 class RemediationExecutor:
     def __init__(self, action_tools: Any) -> None:
         self._tools = action_tools
-        self._executed: dict[str, Action] = {}   # idempotency_key → Action
+        self._executed: dict[str, Action] = {}  # idempotency_key → Action
         self._entity_locks: dict[str, asyncio.Lock] = {}
 
     async def execute(self, req: RemediationRequest) -> Action:
@@ -104,7 +104,12 @@ class RemediationExecutor:
                     timeout=req.timeout_seconds,
                 )
                 final = action.model_copy(
-                    update={"status": ActionStatus.SUCCESS, "executed_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc)}
+                    update={
+                        "status": ActionStatus.SUCCESS,
+                        "executed_at": __import__("datetime").datetime.now(
+                            __import__("datetime").timezone.utc
+                        ),
+                    }
                 )
             except TimeoutError:
                 logger.error("remediation_timeout", action=req.action_name)
@@ -143,7 +148,9 @@ class RemediationExecutor:
         if name == "restart_pod":
             await self._tools.restart_pod(ctx, params["namespace"], params["pod_name"])
         elif name == "scale_deployment":
-            await self._tools.scale_deployment(ctx, params["namespace"], params["deployment"], params["replicas"])
+            await self._tools.scale_deployment(
+                ctx, params["namespace"], params["deployment"], params["replicas"]
+            )
         elif name == "rollback_deployment":
             await self._tools.rollback_deployment(ctx, params["namespace"], params["deployment"])
         else:

@@ -2,24 +2,21 @@
 
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from core.evidence.builder import EvidenceContextBuilder
-from core.llm.base import LLMRequest, LLMResponse
+from core.llm.base import LLMResponse
 from core.llm.cost_tracker import CostTracker
 from core.llm.gateway import LLMGateway
 from core.rca.agent import RCAAgent, RCAParseError
-from schemas.evidence import Evidence, EvidenceSource, TrustLevel
-from schemas.incident import Domain, Incident, IncidentStatus, Severity
-from schemas.rca import RCA
-
+from schemas.evidence import Evidence, EvidenceSource
+from schemas.incident import Domain, Incident, Severity
 from tests.unit.test_llm_gateway import MockProvider
 
 
 def _ev(value="CrashLoopBackOff") -> Evidence:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Evidence(
         incident_id=uuid.uuid4(),
         source=EvidenceSource.KUBERNETES,
@@ -44,34 +41,38 @@ def _incident() -> Incident:
 
 
 def _valid_rca_json(evidence_ids: list[str]) -> str:
-    return json.dumps({
-        "root_cause": "Container OOMKilled due to memory limit exceeded",
-        "evidence_ids": evidence_ids,
-        "affected_components": ["api-deployment", "api-pod"],
-        "alternative_hypotheses": [
-            {"hypothesis": "Memory leak in application code", "likelihood": 0.8},
-        ],
-        "recommended_action": "Increase memory limit and investigate heap usage",
-        "insufficient_evidence": False,
-    })
+    return json.dumps(
+        {
+            "root_cause": "Container OOMKilled due to memory limit exceeded",
+            "evidence_ids": evidence_ids,
+            "affected_components": ["api-deployment", "api-pod"],
+            "alternative_hypotheses": [
+                {"hypothesis": "Memory leak in application code", "likelihood": 0.8},
+            ],
+            "recommended_action": "Increase memory limit and investigate heap usage",
+            "insufficient_evidence": False,
+        }
+    )
 
 
 def _insufficient_rca_json() -> str:
-    return json.dumps({
-        "root_cause": None,
-        "evidence_ids": [],
-        "affected_components": [],
-        "alternative_hypotheses": [],
-        "recommended_action": None,
-        "insufficient_evidence": True,
-    })
+    return json.dumps(
+        {
+            "root_cause": None,
+            "evidence_ids": [],
+            "affected_components": [],
+            "alternative_hypotheses": [],
+            "recommended_action": None,
+            "insufficient_evidence": True,
+        }
+    )
 
 
 def _mock_response(content: str) -> LLMResponse:
     return LLMResponse(
         content=content,
-        model="claude-sonnet-4-6",
-        provider="claude",
+        model="gpt-4.1-mini",
+        provider="openai",
         input_tokens=500,
         output_tokens=200,
         cost_usd=0.002,
@@ -80,9 +81,9 @@ def _mock_response(content: str) -> LLMResponse:
 
 
 def _make_gateway(responses: list) -> LLMGateway:
-    provider = MockProvider("claude", responses)
+    provider = MockProvider("openai", responses)
     cost = CostTracker(cost_limit_per_incident=10.0, cost_limit_daily=100.0)
-    return LLMGateway({"claude": provider}, cost)
+    return LLMGateway({"openai": provider}, cost)
 
 
 class TestRCAAgent:
@@ -96,7 +97,7 @@ class TestRCAAgent:
         assert rca.root_cause is not None
         assert not rca.insufficient_evidence
         assert rca.prompt_version == "v1.0"
-        assert rca.model == "claude-sonnet-4-6"
+        assert rca.model == "gpt-4.1-mini"
 
     @pytest.mark.asyncio
     async def test_insufficient_evidence_rca(self):
@@ -111,10 +112,12 @@ class TestRCAAgent:
     async def test_retries_once_on_invalid_json(self):
         ev = _ev()
         inc = _incident()
-        gw = _make_gateway([
-            _mock_response("not valid json at all"),
-            _mock_response(_valid_rca_json([str(ev.id)])),
-        ])
+        gw = _make_gateway(
+            [
+                _mock_response("not valid json at all"),
+                _mock_response(_valid_rca_json([str(ev.id)])),
+            ]
+        )
         agent = RCAAgent(gw)
         rca = await agent.analyze(inc, [ev])
         assert rca.root_cause is not None
@@ -123,10 +126,12 @@ class TestRCAAgent:
     async def test_raises_parse_error_after_max_retries(self):
         ev = _ev()
         inc = _incident()
-        gw = _make_gateway([
-            _mock_response("bad json 1"),
-            _mock_response("bad json 2"),
-        ])
+        gw = _make_gateway(
+            [
+                _mock_response("bad json 1"),
+                _mock_response("bad json 2"),
+            ]
+        )
         agent = RCAAgent(gw)
         with pytest.raises(RCAParseError):
             await agent.analyze(inc, [ev])

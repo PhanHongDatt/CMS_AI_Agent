@@ -46,8 +46,8 @@ class OpenAIProvider(LLMProvider):
                 ),
                 timeout=self._timeout,
             )
-        except TimeoutError:
-            raise LLMTimeoutError(f"OpenAI request timed out after {self._timeout}s")
+        except TimeoutError as e:
+            raise LLMTimeoutError(f"OpenAI request timed out after {self._timeout}s") from e
         except openai.RateLimitError as e:
             raise LLMRateLimitError(str(e)) from e
         except openai.AuthenticationError as e:

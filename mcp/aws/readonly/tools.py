@@ -1,13 +1,13 @@
 """AWS read-only MCP tools."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from mcp.base import MCPConnectionError, ToolKind, ToolResult
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class AWSReadonlyTools:
@@ -72,9 +72,7 @@ class AWSReadonlyTools:
         self, bucket: str, prefix: str = "", max_keys: int = 10
     ) -> ToolResult:
         try:
-            resp = self._s3.list_objects_v2(
-                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys
-            )
+            resp = self._s3.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
             objects = [
                 {
                     "key": o["Key"],

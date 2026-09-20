@@ -1,7 +1,7 @@
 """Gate G0: Schema validation tests."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -11,7 +11,7 @@ from schemas.confidence import Confidence, ConfidenceSubScores, ConfidenceWeight
 from schemas.evidence import Evidence, EvidenceSource, TrustLevel
 from schemas.incident import Domain, Incident, IncidentStatus, Severity
 from schemas.policy import PolicyDecision, PolicyDecisionEnum, PolicyInputs, Risk
-from schemas.rca import AlternativeHypothesis, RCA
+from schemas.rca import RCA, AlternativeHypothesis
 from schemas.verification import Verification, VerificationResult
 
 
@@ -27,7 +27,7 @@ def make_incident(**overrides) -> dict:
 
 
 def make_evidence(**overrides) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     base = {
         "incident_id": uuid.uuid4(),
         "source": EvidenceSource.PROMETHEUS,
@@ -55,6 +55,7 @@ def make_sub_scores(**overrides) -> dict:
 
 
 # --- Incident ---
+
 
 class TestIncidentSchema:
     def test_valid_incident(self):
@@ -84,6 +85,7 @@ class TestIncidentSchema:
 
 # --- Evidence ---
 
+
 class TestEvidenceSchema:
     def test_valid_evidence(self):
         ev = Evidence(**make_evidence())
@@ -99,6 +101,7 @@ class TestEvidenceSchema:
 
 
 # --- RCA ---
+
 
 class TestRCASchema:
     def test_valid_rca_with_root_cause(self):
@@ -141,12 +144,18 @@ class TestRCASchema:
 
 # --- Confidence ---
 
+
 class TestConfidenceSchema:
     def _make_confidence(self, **overrides) -> dict:
         sub = make_sub_scores()
-        weights = {"evidence_quality": 0.25, "evidence_completeness": 0.20,
-                   "evidence_consistency": 0.20, "rca_agreement": 0.15,
-                   "model_output_quality": 0.10, "historical_success": 0.10}
+        weights = {
+            "evidence_quality": 0.25,
+            "evidence_completeness": 0.20,
+            "evidence_consistency": 0.20,
+            "rca_agreement": 0.15,
+            "model_output_quality": 0.10,
+            "historical_success": 0.10,
+        }
         s = ConfidenceSubScores(**sub)
         w = ConfidenceWeights(**weights)
         final = (
@@ -174,9 +183,12 @@ class TestConfidenceSchema:
     def test_weights_must_sum_to_one(self):
         with pytest.raises(ValidationError):
             ConfidenceWeights(
-                evidence_quality=0.30, evidence_completeness=0.30,
-                evidence_consistency=0.20, rca_agreement=0.15,
-                model_output_quality=0.10, historical_success=0.10,
+                evidence_quality=0.30,
+                evidence_completeness=0.30,
+                evidence_consistency=0.20,
+                rca_agreement=0.15,
+                model_output_quality=0.10,
+                historical_success=0.10,
             )
 
     def test_final_score_must_match_calculation(self):
@@ -186,6 +198,7 @@ class TestConfidenceSchema:
 
 
 # --- Policy ---
+
 
 class TestPolicySchema:
     def test_valid_policy_decision(self):
@@ -222,6 +235,7 @@ class TestPolicySchema:
 
 # --- Action ---
 
+
 class TestActionSchema:
     def test_valid_action(self):
         action = Action(
@@ -251,6 +265,7 @@ class TestActionSchema:
 
 
 # --- Verification ---
+
 
 class TestVerificationSchema:
     def test_valid_verification_pass(self):

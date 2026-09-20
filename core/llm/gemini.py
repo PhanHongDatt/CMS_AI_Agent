@@ -53,8 +53,8 @@ class GeminiProvider(LLMProvider):
                 ),
                 timeout=self._timeout,
             )
-        except TimeoutError:
-            raise LLMTimeoutError(f"Gemini request timed out after {self._timeout}s")
+        except TimeoutError as e:
+            raise LLMTimeoutError(f"Gemini request timed out after {self._timeout}s") from e
         except genai_errors.ClientError as e:
             status = getattr(e, "code", None)
             if status == 429:

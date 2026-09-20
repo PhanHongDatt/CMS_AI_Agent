@@ -5,7 +5,7 @@ import uuid
 
 import pytest
 
-from core.approval.manager import ApprovalDecision, ApprovalManager, ApprovalRequest, ApprovalStatus
+from core.approval.manager import ApprovalManager, ApprovalRequest, ApprovalStatus
 
 
 def _req(request_id: str | None = None, incident_id: str = "inc-1") -> ApprovalRequest:
@@ -41,7 +41,9 @@ class TestApprovalManager:
         mgr = ApprovalManager()
         req = _req()
         mgr.submit(req)
-        decision = mgr.decide(req.request_id, approved=False, decided_by="ops-user", reason="Too risky")
+        decision = mgr.decide(
+            req.request_id, approved=False, decided_by="ops-user", reason="Too risky"
+        )
         assert decision.status == ApprovalStatus.REJECTED
         assert decision.reason == "Too risky"
 

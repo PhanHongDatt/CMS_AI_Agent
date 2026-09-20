@@ -1,7 +1,6 @@
 """Prometheus read-only MCP tools."""
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import httpx
 
@@ -9,7 +8,7 @@ from mcp.base import MCPConnectionError, MCPTimeoutError, ToolKind, ToolResult
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class PrometheusReadonlyTools:

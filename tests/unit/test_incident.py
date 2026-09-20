@@ -1,7 +1,6 @@
 """Gate G4: Alert correlation + Incident Manager tests."""
 
 import time
-import uuid
 
 import pytest
 
@@ -10,7 +9,9 @@ from core.incident.manager import IncidentManager
 from schemas.incident import Domain, IncidentStatus, Severity
 
 
-def _alert(fingerprint: str = "fp-001", domain: str = "infrastructure", severity: str = "high") -> AlertInput:
+def _alert(
+    fingerprint: str = "fp-001", domain: str = "infrastructure", severity: str = "high"
+) -> AlertInput:
     return AlertInput(
         source="alertmanager",
         fingerprint=fingerprint,
@@ -36,7 +37,7 @@ class TestAlertCorrelator:
 
     def test_different_fingerprints_create_separate_incidents(self):
         c = AlertCorrelator(dedup_window_seconds=300)
-        r1 = c.correlate(_alert("fp-001"), "inc-A")
+        c.correlate(_alert("fp-001"), "inc-A")
         c.associate("inc-A", _alert("fp-001"))
         r2 = c.correlate(_alert("fp-002"), "inc-B")
         assert not r2.is_duplicate

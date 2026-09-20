@@ -71,14 +71,10 @@ class LLMGateway:
                 primary=route.provider,
                 fallback=route.fallback_provider,
             )
-            response = await self._try_route(
-                request, route.fallback_provider, route.fallback_model
-            )
+            response = await self._try_route(request, route.fallback_provider, route.fallback_model)
 
         if response is None:
-            raise LLMUnavailableError(
-                f"All providers unavailable for task '{request.task}'"
-            )
+            raise LLMUnavailableError(f"All providers unavailable for task '{request.task}'")
 
         self._cost.record(
             request.incident_id,
@@ -124,9 +120,7 @@ class LLMGateway:
                     )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(
-                        "llm_max_retries_exceeded", provider=provider_name, error=str(e)
-                    )
+                    logger.error("llm_max_retries_exceeded", provider=provider_name, error=str(e))
             except Exception as e:
                 breaker.record_failure()
                 logger.error("llm_unexpected_error", provider=provider_name, error=str(e))
@@ -141,10 +135,8 @@ class LLMGateway:
         # Estimate ~500 input tokens, ~1000 output tokens
         return provider.estimate_cost(500, 1000, route.model)
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self) -> dict[str, object]:
         return {
             "cost": self._cost.get_metrics(),
-            "circuit_breakers": {
-                name: cb.state.value for name, cb in self._breakers.items()
-            },
+            "circuit_breakers": {name: cb.state.value for name, cb in self._breakers.items()},
         }

@@ -13,10 +13,11 @@ No infinite remediation loop.
 """
 
 import asyncio
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from core.logging import get_logger
-from schemas.action import Action, ActionStatus
+from schemas.action import Action
 from schemas.verification import Verification, VerificationResult
 
 logger = get_logger(__name__)

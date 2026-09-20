@@ -11,8 +11,7 @@ historical_success:    cold-start prior 0.6; EMA after >=20 verified outcomes pe
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Sequence
+from collections.abc import Sequence
 
 from schemas.confidence import Confidence, ConfidenceSubScores, ConfidenceWeights
 from schemas.evidence import Evidence, EvidenceSource
@@ -21,8 +20,8 @@ from schemas.rca import RCA
 _CALIBRATION_VERSION = "v1.0"
 
 # Freshness thresholds
-_FRESH_SECONDS = 300.0    # 1.0 score below this
-_STALE_SECONDS = 3600.0   # 0.0 score above this
+_FRESH_SECONDS = 300.0  # 1.0 score below this
+_STALE_SECONDS = 3600.0  # 0.0 score above this
 
 # Expected sources per incident type (completeness)
 _EXPECTED_SOURCES: dict[str, set[EvidenceSource]] = {
@@ -97,9 +96,7 @@ class ConfidenceEngine:
         span = _STALE_SECONDS - _FRESH_SECONDS
         return 1.0 - (freshness_seconds - _FRESH_SECONDS) / span
 
-    def _evidence_completeness(
-        self, incident_type: str, evidence: Sequence[Evidence]
-    ) -> float:
+    def _evidence_completeness(self, incident_type: str, evidence: Sequence[Evidence]) -> float:
         expected = _EXPECTED_SOURCES.get(incident_type, _EXPECTED_SOURCES["default"])
         if not expected:
             return 1.0
@@ -113,7 +110,7 @@ class ConfidenceEngine:
         contradictory numeric values (both > 0 but differ by > 50%).
         """
         # Group numeric values by (source, entity, metric)
-        groups: dict[tuple, list[float]] = {}
+        groups: dict[tuple[object, ...], list[float]] = {}
         for e in evidence:
             if isinstance(e.value, (int, float)):
                 key = (e.source, e.entity, e.metric_or_query)

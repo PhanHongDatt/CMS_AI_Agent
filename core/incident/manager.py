@@ -6,13 +6,11 @@ Owns the state machine for each incident:
   → VERIFYING → RESOLVED / ROLLBACK / ESCALATED
 """
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from core.incident.correlator import AlertCorrelator, AlertInput, CorrelationResult
-from core.logging import get_logger
-from core.logging import set_trace_id
+from core.incident.correlator import AlertCorrelator, AlertInput
+from core.logging import get_logger, set_trace_id
 from schemas.incident import Domain, Incident, IncidentStatus, Severity
 
 logger = get_logger(__name__)
@@ -48,7 +46,8 @@ class IncidentManager:
         if result.is_duplicate and result.incident_id:
             existing = self._incidents.get(result.incident_id)
             if existing and existing.status not in (
-                IncidentStatus.RESOLVED, IncidentStatus.ESCALATED
+                IncidentStatus.RESOLVED,
+                IncidentStatus.ESCALATED,
             ):
                 logger.info(
                     "alert_deduplicated",
@@ -89,7 +88,7 @@ class IncidentManager:
         """Advance incident to next status. Returns updated incident."""
         incident = self._get(incident_id)
         updated = incident.model_copy(
-            update={"status": new_status, "updated_at": datetime.now(timezone.utc)}
+            update={"status": new_status, "updated_at": datetime.now(UTC)}
         )
         self._incidents[incident_id] = updated
         logger.info(
@@ -104,7 +103,7 @@ class IncidentManager:
         incident = self._get(incident_id)
         merged = list(set(incident.evidence_ids + evidence_ids))
         updated = incident.model_copy(
-            update={"evidence_ids": merged, "updated_at": datetime.now(timezone.utc)}
+            update={"evidence_ids": merged, "updated_at": datetime.now(UTC)}
         )
         self._incidents[incident_id] = updated
         return updated

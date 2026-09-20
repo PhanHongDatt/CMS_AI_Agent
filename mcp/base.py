@@ -1,6 +1,6 @@
 """Base types shared across all MCP tools."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -22,6 +22,7 @@ class ToolResult:
 @dataclass(frozen=True)
 class ActionContext:
     """Required for every ACTION tool call. MCP rejects missing/invalid IDs."""
+
     policy_decision_id: str
     incident_id: str
     trace_id: str

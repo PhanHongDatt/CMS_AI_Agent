@@ -1,4 +1,5 @@
 """Versioned RCA prompt. Pin this version in every RCA record."""
+# ruff: noqa: E501
 
 PROMPT_VERSION = "v1.0"
 

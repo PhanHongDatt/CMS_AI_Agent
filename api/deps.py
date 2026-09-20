@@ -4,9 +4,6 @@ import os
 
 from core.approval.manager import ApprovalManager
 from core.approval.notifier import TelegramNotifier
-from core.logging import get_logger
-
-_log = get_logger(__name__)
 from core.autonomy.level import AutonomyRegistry
 from core.confidence.engine import ConfidenceEngine
 from core.incident.correlator import AlertCorrelator
@@ -14,11 +11,18 @@ from core.incident.manager import IncidentManager
 from core.llm.cost_tracker import CostTracker
 from core.llm.gateway import LLMGateway
 from core.llm.mock_provider import MockLLMProvider
-from core.pipeline.evidence_gatherer import MockActionTools, MockEvidenceGatherer, RealK8sEvidenceGatherer
+from core.logging import get_logger
+from core.pipeline.evidence_gatherer import (
+    MockActionTools,
+    MockEvidenceGatherer,
+    RealK8sEvidenceGatherer,
+)
 from core.pipeline.runner import PipelineRunner
 from core.policy.engine import PolicyEngine
 from core.rca.agent import RCAAgent
 from core.remediation.executor import RemediationExecutor
+
+_log = get_logger(__name__)
 
 # ── Core singletons ───────────────────────────────────────────────────────────
 _correlator = AlertCorrelator()
@@ -27,6 +31,7 @@ _approval_manager = ApprovalManager(timeout_seconds=300.0)
 _autonomy_registry = AutonomyRegistry()
 _confidence_engine = ConfidenceEngine()
 _policy_engine = PolicyEngine()
+
 
 # ── LLM Gateway (mock if no real keys configured) ─────────────────────────────
 def _build_llm_gateway() -> LLMGateway:
@@ -39,6 +44,7 @@ def _build_llm_gateway() -> LLMGateway:
     if openai_key:
         try:
             from core.llm.openai import OpenAIProvider
+
             providers["openai"] = OpenAIProvider(api_key=openai_key)
             _log.info("llm_provider_loaded", provider="openai")
         except Exception as e:
@@ -48,6 +54,7 @@ def _build_llm_gateway() -> LLMGateway:
     if gemini_key:
         try:
             from core.llm.gemini import GeminiProvider
+
             providers["gemini"] = GeminiProvider(api_key=gemini_key)
             _log.info("llm_provider_loaded", provider="gemini")
         except Exception as e:
@@ -63,6 +70,7 @@ _rca_agent = RCAAgent(gateway=_llm_gateway)
 
 def get_llm_gateway() -> LLMGateway:
     return _llm_gateway
+
 
 # ── Telegram Notifier (optional) ──────────────────────────────────────────────
 def _build_notifier() -> TelegramNotifier | None:
@@ -131,7 +139,8 @@ def _build_prometheus_tools():
     from mcp.prometheus.readonly.tools import PrometheusReadonlyTools
 
     base_url = os.getenv(
-        "PROMETHEUS_URL", "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
+        "PROMETHEUS_URL",
+        "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090",
     )
     return PrometheusReadonlyTools(base_url=base_url)
 

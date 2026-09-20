@@ -20,17 +20,26 @@ def _api_url() -> str:
     return os.getenv("API_BASE_URL", _DEFAULT_API_URL).rstrip("/")
 
 
-async def submit_alert(source: str, fingerprint: str, severity: str, domain: str = "infrastructure") -> dict:
+async def submit_alert(
+    source: str, fingerprint: str, severity: str, domain: str = "infrastructure"
+) -> dict:
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.post(
             f"{_api_url()}/alerts",
-            json={"source": source, "fingerprint": fingerprint, "severity": severity, "domain": domain},
+            json={
+                "source": source,
+                "fingerprint": fingerprint,
+                "severity": severity,
+                "domain": domain,
+            },
         )
         resp.raise_for_status()
         return resp.json()
 
 
-async def decide_approval(request_id: str, approved: bool, decided_by: str, reason: str | None = None) -> dict:
+async def decide_approval(
+    request_id: str, approved: bool, decided_by: str, reason: str | None = None
+) -> dict:
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.post(
             f"{_api_url()}/approvals/{request_id}/decide",

@@ -2,6 +2,7 @@ import asyncio
 import time
 
 import anthropic
+from anthropic.types import TextBlock
 
 from core.llm.base import LLMProvider, LLMRequest, LLMResponse
 from core.llm.errors import (
@@ -40,14 +41,13 @@ class ClaudeProvider(LLMProvider):
                 self._client.messages.create(
                     model=model,
                     max_tokens=request.max_tokens,
-                    temperature=request.temperature,
                     system=request.system_prompt,
                     messages=[{"role": "user", "content": request.user_message}],
                 ),
                 timeout=self._timeout,
             )
-        except TimeoutError:
-            raise LLMTimeoutError(f"Claude request timed out after {self._timeout}s")
+        except TimeoutError as e:
+            raise LLMTimeoutError(f"Claude request timed out after {self._timeout}s") from e
         except anthropic.RateLimitError as e:
             raise LLMRateLimitError(str(e)) from e
         except anthropic.AuthenticationError as e:
@@ -58,7 +58,9 @@ class ClaudeProvider(LLMProvider):
         duration = time.monotonic() - start
         input_tokens = response.usage.input_tokens
         output_tokens = response.usage.output_tokens
-        content = response.content[0].text if response.content else ""
+        content = next(
+            (block.text for block in response.content if isinstance(block, TextBlock)), ""
+        )
 
         return LLMResponse(
             content=content,

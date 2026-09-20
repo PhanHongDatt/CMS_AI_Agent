@@ -8,6 +8,7 @@ import re
 class TestImports:
     def test_schemas_importable(self):
         import schemas
+
         assert schemas is not None
 
     def test_all_schema_modules_importable(self):
@@ -27,6 +28,7 @@ class TestImports:
     def test_core_modules_importable(self):
         import core.config
         import core.logging
+
         assert core.config is not None
         assert core.logging is not None
 
@@ -36,9 +38,9 @@ class TestNoSecretsInCode:
 
     SECRET_PATTERNS = [
         re.compile(r'(?i)(password|passwd|secret|api_key|apikey|token)\s*=\s*["\'][^"\']{4,}["\']'),
-        re.compile(r'(?i)postgresql://[^:]+:[^@]{4,}@'),
-        re.compile(r'(?i)redis://:[^@]{4,}@'),
-        re.compile(r'AKIA[0-9A-Z]{16}'),  # AWS Access Key ID pattern
+        re.compile(r"(?i)postgresql://[^:]+:[^@]{4,}@"),
+        re.compile(r"(?i)redis://:[^@]{4,}@"),
+        re.compile(r"AKIA[0-9A-Z]{16}"),  # AWS Access Key ID pattern
     ]
 
     ALLOWED_PATHS = {

@@ -1,7 +1,5 @@
 """Gate G11: Gradual Autonomy tests."""
 
-import pytest
-
 from core.autonomy.level import AutonomyLevel, AutonomyRegistry
 
 

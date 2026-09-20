@@ -8,7 +8,6 @@ import pytest
 
 from core.remediation.executor import RemediationExecutor, RemediationRequest
 from schemas.action import ActionStatus
-from schemas.confidence import Confidence, ConfidenceSubScores, ConfidenceWeights
 from schemas.incident import Severity
 from schemas.policy import PolicyDecision, PolicyDecisionEnum, PolicyInputs, Risk
 
@@ -41,7 +40,8 @@ def _req(
         action_name=action,
         incident_id="inc-1",
         policy_decision=_policy(decision),
-        action_params=params or {"namespace": "default", "pod_name": "api-pod", "rollback_tested": True},
+        action_params=params
+        or {"namespace": "default", "pod_name": "api-pod", "rollback_tested": True},
         idempotency_key=key or str(uuid.uuid4()),
     )
 
@@ -67,10 +67,17 @@ class TestRemediationExecutor:
     async def test_successful_scale_deployment(self):
         tools = _mock_tools()
         executor = RemediationExecutor(tools)
-        action = await executor.execute(_req(
-            "scale_deployment",
-            params={"namespace": "default", "deployment": "api", "replicas": 3, "rollback_tested": True},
-        ))
+        action = await executor.execute(
+            _req(
+                "scale_deployment",
+                params={
+                    "namespace": "default",
+                    "deployment": "api",
+                    "replicas": 3,
+                    "rollback_tested": True,
+                },
+            )
+        )
         assert action.status == ActionStatus.SUCCESS
         tools.scale_deployment.assert_called_once()
 
@@ -105,6 +112,7 @@ class TestRemediationExecutor:
     @pytest.mark.asyncio
     async def test_concurrent_same_entity_serialized(self):
         call_order = []
+
         async def slow_restart(ctx, ns, pod):
             call_order.append("start")
             await asyncio.sleep(0.05)
@@ -128,7 +136,7 @@ class TestRemediationExecutor:
         tools = _mock_tools()
         tools.restart_pod = slow
         executor = RemediationExecutor(tools)
-        action = await executor.execute(_req(key="timeout-key"), )
+        await executor.execute(_req(key="timeout-key"))
         # Set very short timeout
         req = RemediationRequest(
             action_name="restart_pod",

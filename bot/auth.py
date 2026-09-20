@@ -1,8 +1,8 @@
 """Telegram bot authorization — whitelist-based user access control."""
 
 import os
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -25,6 +25,7 @@ def require_auth(handler: Callable) -> Callable:
 
     If TELEGRAM_ALLOWED_USERS is empty, all users are allowed (open mode).
     """
+
     @wraps(handler)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         allowed = _get_allowed_users()

@@ -4,7 +4,18 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from api.routes import alerts, approvals, autonomy, business, cluster, health, incidents, llm, pipeline, webhook
+from api.routes import (
+    alerts,
+    approvals,
+    autonomy,
+    business,
+    cluster,
+    health,
+    incidents,
+    llm,
+    pipeline,
+    webhook,
+)
 from core.logging import configure_logging
 
 

@@ -4,7 +4,7 @@ Every action tool REQUIRES a valid ActionContext with policy_decision_id.
 MCP rejects any call missing or with invalid policy_decision_id.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from mcp.base import ActionContext, MCPAuthorizationError, MCPConnectionError, ToolKind, ToolResult
@@ -13,14 +13,12 @@ _WHITELISTED_ACTIONS = {"restart_pod", "scale_deployment", "rollback_deployment"
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _validate(ctx: ActionContext, action: str) -> None:
     if not ctx.policy_decision_id:
-        raise MCPAuthorizationError(
-            f"ACTION '{action}' requires a valid policy_decision_id"
-        )
+        raise MCPAuthorizationError(f"ACTION '{action}' requires a valid policy_decision_id")
     if action not in _WHITELISTED_ACTIONS:
         raise MCPAuthorizationError(
             f"ACTION '{action}' is not whitelisted. Allowed: {_WHITELISTED_ACTIONS}"
@@ -32,9 +30,7 @@ class KubernetesActionTools:
         self._core = core_v1
         self._apps = apps_v1
 
-    async def restart_pod(
-        self, ctx: ActionContext, namespace: str, pod_name: str
-    ) -> ToolResult:
+    async def restart_pod(self, ctx: ActionContext, namespace: str, pod_name: str) -> ToolResult:
         _validate(ctx, "restart_pod")
         try:
             self._core.delete_namespaced_pod(name=pod_name, namespace=namespace)
@@ -79,21 +75,19 @@ class KubernetesActionTools:
             body = {
                 "spec": {
                     "template": {
-                        "metadata": {
-                            "annotations": {
-                                "kubectl.kubernetes.io/restartedAt": _now()
-                            }
-                        }
+                        "metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": _now()}}
                     }
                 }
             }
-            self._apps.patch_namespaced_deployment(
-                name=deployment, namespace=namespace, body=body
-            )
+            self._apps.patch_namespaced_deployment(name=deployment, namespace=namespace, body=body)
             return ToolResult(
                 tool="rollback_deployment",
                 kind=ToolKind.ACTION,
-                data={"deployment": deployment, "namespace": namespace, "action": "rollback_triggered"},
+                data={
+                    "deployment": deployment,
+                    "namespace": namespace,
+                    "action": "rollback_triggered",
+                },
                 source_reference=f"kubernetes://{namespace}/deployments/{deployment}",
                 fetched_at=_now(),
             )

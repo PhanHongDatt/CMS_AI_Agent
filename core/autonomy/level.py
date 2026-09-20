@@ -20,7 +20,6 @@ Any missing prerequisite → demote to L2 (require approval).
 
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Sequence
 
 from core.logging import get_logger
 
@@ -124,7 +123,7 @@ class AutonomyRegistry:
             return False
         return True
 
-    def get_summary(self) -> dict:
+    def get_summary(self) -> dict[str, object]:
         return {
             action: {
                 "level": self.get_level(action).name,

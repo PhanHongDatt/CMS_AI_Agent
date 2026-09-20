@@ -4,6 +4,7 @@ Runs full P1→P11 flow without real LLM or infrastructure.
 """
 
 import asyncio
+
 import pytest
 
 from core.approval.manager import ApprovalManager
@@ -19,10 +20,11 @@ from core.pipeline.runner import PipelineRunner
 from core.policy.engine import PolicyEngine
 from core.rca.agent import RCAAgent
 from core.remediation.executor import RemediationExecutor
-from schemas.incident import IncidentStatus
 
 
-def _build_runner(environment: str = "development") -> tuple[PipelineRunner, IncidentManager, ApprovalManager]:
+def _build_runner(
+    environment: str = "development",
+) -> tuple[PipelineRunner, IncidentManager, ApprovalManager]:
     correlator = AlertCorrelator()
     incident_manager = IncidentManager(correlator=correlator)
     approval_manager = ApprovalManager(timeout_seconds=5.0)
