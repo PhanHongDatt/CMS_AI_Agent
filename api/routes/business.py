@@ -95,8 +95,15 @@ _QUERIES = {
     "customers_active": 'erpnext_customers_total{disabled="0"}',
     "customers_disabled": 'erpnext_customers_total{disabled="1"}',
     "projects_by_status": "erpnext_projects_total",
+    "tasks_by_status": "erpnext_tasks_total",
     "tasks_overdue": "erpnext_tasks_overdue_total",
-    "contractor_payment_requests_by_state": "erpnext_contractor_payment_requests_total",
+    # FIX (2026-09-21): "Contractor Payment Request" là DocType của app
+    # construction_management_app — CHƯA cài trên site thật, bảng không tồn
+    # tại, exporter đã đổi sang Material Receipt (Stock Entry) theo supplier.
+    # Xem cluster-bootstrap/business-metrics-exporter/templates/configmap.yaml.
+    "material_receipts_by_supplier": "erpnext_material_receipts_total",
+    "material_receipt_value_by_supplier": "erpnext_material_receipt_value_total",
+    "material_issue_value_by_project": "erpnext_material_issue_value_total",
     "stock_qty_by_warehouse": "erpnext_stock_qty_total",
     "stock_reserved_qty_by_warehouse": "erpnext_stock_reserved_qty_total",
     "items_by_type": "erpnext_items_total",
