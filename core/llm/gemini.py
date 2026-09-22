@@ -26,7 +26,10 @@ _CHARS_PER_TOKEN = 4
 
 class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str, timeout_seconds: float = 30.0) -> None:
-        self._client = genai.Client(api_key=api_key)
+        key = (api_key or "").strip()
+        if not key:
+            raise ValueError("Gemini API key is empty")
+        self._client = genai.Client(api_key=key)
         self._timeout = timeout_seconds
 
     @property

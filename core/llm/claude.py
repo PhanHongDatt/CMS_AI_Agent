@@ -23,7 +23,10 @@ _DEFAULT_COST = {"input": 3.00, "output": 15.00}
 
 class ClaudeProvider(LLMProvider):
     def __init__(self, api_key: str, timeout_seconds: float = 30.0) -> None:
-        self._client = anthropic.AsyncAnthropic(api_key=api_key)
+        key = (api_key or "").strip()
+        if not key:
+            raise ValueError("Anthropic API key is empty")
+        self._client = anthropic.AsyncAnthropic(api_key=key)
         self._timeout = timeout_seconds
 
     @property

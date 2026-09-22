@@ -23,6 +23,7 @@ from core.llm.errors import (
     LLMRateLimitError,
     LLMTimeoutError,
     LLMUnavailableError,
+    sanitize_llm_error,
 )
 from core.llm.router import ModelRoute, resolve_route
 from core.logging import get_logger
@@ -105,7 +106,9 @@ class LLMGateway:
                 return response
             except _NON_RETRYABLE as e:
                 breaker.record_failure()
-                logger.error("llm_non_retryable_error", provider=provider_name, error=str(e))
+                logger.error(
+                    "llm_non_retryable_error", provider=provider_name, error=sanitize_llm_error(e)
+                )
                 return None
             except _RETRYABLE as e:
                 breaker.record_failure()
@@ -116,14 +119,20 @@ class LLMGateway:
                         provider=provider_name,
                         attempt=attempt + 1,
                         delay=delay,
-                        error=str(e),
+                        error=sanitize_llm_error(e),
                     )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("llm_max_retries_exceeded", provider=provider_name, error=str(e))
+                    logger.error(
+                        "llm_max_retries_exceeded",
+                        provider=provider_name,
+                        error=sanitize_llm_error(e),
+                    )
             except Exception as e:
                 breaker.record_failure()
-                logger.error("llm_unexpected_error", provider=provider_name, error=str(e))
+                logger.error(
+                    "llm_unexpected_error", provider=provider_name, error=sanitize_llm_error(e)
+                )
                 return None
 
         return None

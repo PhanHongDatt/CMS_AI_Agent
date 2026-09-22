@@ -20,7 +20,12 @@ _DEFAULT_COST = {"input": 0.40, "output": 1.60}
 
 class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, timeout_seconds: float = 30.0) -> None:
-        self._client = openai.AsyncOpenAI(api_key=api_key)
+        # Strip whitespace: a trailing newline in the stored secret makes the
+        # HTTP client reject the Authorization header ("Connection error.").
+        key = (api_key or "").strip()
+        if not key:
+            raise ValueError("OpenAI API key is empty")
+        self._client = openai.AsyncOpenAI(api_key=key)
         self._timeout = timeout_seconds
 
     @property

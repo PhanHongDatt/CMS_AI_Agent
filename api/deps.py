@@ -9,6 +9,7 @@ from core.confidence.engine import ConfidenceEngine
 from core.incident.correlator import AlertCorrelator
 from core.incident.manager import IncidentManager
 from core.llm.cost_tracker import CostTracker
+from core.llm.errors import sanitize_llm_error
 from core.llm.gateway import LLMGateway
 from core.llm.mock_provider import MockLLMProvider
 from core.logging import get_logger
@@ -48,7 +49,7 @@ def _build_llm_gateway() -> LLMGateway:
             providers["openai"] = OpenAIProvider(api_key=openai_key)
             _log.info("llm_provider_loaded", provider="openai")
         except Exception as e:
-            _log.warning("openai_provider_init_failed", error=str(e))
+            _log.warning("openai_provider_init_failed", error=sanitize_llm_error(e))
 
     gemini_key = os.getenv("GEMINI_API_KEY")
     if gemini_key:
@@ -58,7 +59,7 @@ def _build_llm_gateway() -> LLMGateway:
             providers["gemini"] = GeminiProvider(api_key=gemini_key)
             _log.info("llm_provider_loaded", provider="gemini")
         except Exception as e:
-            _log.warning("gemini_provider_init_failed", error=str(e))
+            _log.warning("gemini_provider_init_failed", error=sanitize_llm_error(e))
 
     cost_tracker = CostTracker(cost_limit_per_incident=1.0, cost_limit_daily=20.0)
     return LLMGateway(providers=providers, cost_tracker=cost_tracker)
