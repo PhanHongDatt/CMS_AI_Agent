@@ -10,6 +10,7 @@ from core.llm.base import LLMResponse
 from core.llm.cost_tracker import CostTracker
 from core.llm.gateway import LLMGateway
 from core.rca.agent import RCAAgent, RCAParseError
+from core.rca.prompts import PROMPT_VERSION
 from schemas.evidence import Evidence, EvidenceSource
 from schemas.incident import Domain, Incident, Severity
 from tests.unit.test_llm_gateway import MockProvider
@@ -96,7 +97,7 @@ class TestRCAAgent:
         rca = await agent.analyze(inc, [ev])
         assert rca.root_cause is not None
         assert not rca.insufficient_evidence
-        assert rca.prompt_version == "v1.0"
+        assert rca.prompt_version == PROMPT_VERSION
         assert rca.model == "gpt-4.1-mini"
 
     @pytest.mark.asyncio

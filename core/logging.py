@@ -61,6 +61,12 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
         level=getattr(logging, log_level.upper(), logging.INFO),
     )
 
+    # httpx/httpcore log the full request URL at INFO. For Telegram that URL
+    # embeds the bot token (https://api.telegram.org/bot<token>/sendMessage),
+    # which then lands in pod logs and OpenSearch. Keep them at WARNING.
+    for noisy in ("httpx", "httpcore", "openai", "anthropic"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
 
 def get_logger(name: str = __name__) -> structlog.stdlib.BoundLogger:
     return structlog.get_logger(name)  # type: ignore[no-any-return]
