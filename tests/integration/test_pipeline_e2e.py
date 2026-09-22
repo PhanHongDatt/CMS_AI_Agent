@@ -24,6 +24,7 @@ from core.remediation.executor import RemediationExecutor
 
 def _build_runner(
     environment: str = "development",
+    llm_available: bool = True,
 ) -> tuple[PipelineRunner, IncidentManager, ApprovalManager]:
     correlator = AlertCorrelator()
     incident_manager = IncidentManager(correlator=correlator)
@@ -31,8 +32,11 @@ def _build_runner(
 
     mock_provider = MockLLMProvider()
     cost_tracker = CostTracker()
-    # Register mock under "claude" so the routing table resolves correctly
-    gateway = LLMGateway(providers={"claude": mock_provider}, cost_tracker=cost_tracker)
+    # Register the mock under the providers the routing table actually uses
+    # (core/llm/router.py: openai primary, gemini fallback). With
+    # llm_available=False no provider resolves, like the live outage.
+    providers = {"openai": mock_provider, "gemini": mock_provider} if llm_available else {}
+    gateway = LLMGateway(providers=providers, cost_tracker=cost_tracker)
 
     rca_agent = RCAAgent(gateway=gateway)
     confidence_engine = ConfidenceEngine()
@@ -136,6 +140,28 @@ class TestPipelineE2E:
 
         assert run.approval_request_id is not None
         assert run.stage in (PipelineStage.RESOLVED, PipelineStage.FAILED)
+
+    @pytest.mark.asyncio
+    async def test_rca_unavailable_never_proposes_remediation(self):
+        """Case B: LLM down -> RCA N/A -> DENY, no approval request, no action."""
+        runner, mgr, approval_mgr = _build_runner(llm_available=False)
+        alert = AlertInput(
+            source="prometheus",
+            fingerprint="fp-rca-unavailable",
+            severity="critical",
+            domain="infrastructure",
+        )
+        incident, _ = mgr.receive_alert(alert)
+        run = await runner.run(incident)
+
+        assert run.rca is not None and run.rca.root_cause is None
+        assert run.rca.recommended_action is None
+        assert run.policy_decision.decision.value == "DENY"
+        assert run.policy_decision.rule_matched == "RCA_UNAVAILABLE"
+        assert run.approval_request_id is None
+        assert approval_mgr.get_pending() == []
+        assert run.action is None
+        assert run.stage == PipelineStage.DENIED
 
     @pytest.mark.asyncio
     async def test_duplicate_alert_skips_pipeline(self):

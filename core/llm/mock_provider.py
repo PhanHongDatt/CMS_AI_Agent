@@ -19,7 +19,10 @@ class MockLLMProvider(LLMProvider):
             "root_cause": "Pod OOMKilled due to memory limit breach; restart loop detected.",
             "evidence_ids": evidence_ids[:2],
             "affected_components": ["api-server"],
-            "alternative_hypotheses": ["Memory leak in application code", "Sudden traffic spike"],
+            "alternative_hypotheses": [
+                {"hypothesis": "Memory leak in application code", "likelihood": 0.3},
+                {"hypothesis": "Sudden traffic spike", "likelihood": 0.2},
+            ],
             "recommended_action": "restart_pod",
             "insufficient_evidence": False,
         }
@@ -37,4 +40,10 @@ class MockLLMProvider(LLMProvider):
         return 0.0
 
     def _extract_evidence_ids(self, message: str) -> list[str]:
-        return re.findall(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", message)
+        # Cite only the offered evidence IDs; the first UUID in the prompt is the
+        # incident ID, which the RCA validator correctly rejects as evidence.
+        match = re.search(r"Available evidence IDs: \[([^\]]*)\]", message)
+        return re.findall(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            match[1] if match else "",
+        )

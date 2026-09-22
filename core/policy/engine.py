@@ -5,6 +5,8 @@ Default final rule: DENY.
 Unknown rule → DEFAULT_DENY.
 
 INVARIANT: confidence > 0.80 alone NEVER grants AUTO authorization.
+INVARIANT: no remediation without a valid RCA (root cause + recommended action);
+           an unavailable RCA is DENY regardless of confidence or severity.
 HIGH risk ALWAYS requires human approval regardless of confidence.
 """
 
@@ -22,13 +24,15 @@ _STAGING = "staging"
 @dataclass(frozen=True)
 class PolicyRequest:
     incident_id: str
-    action_type: str
+    action_type: str | None
     confidence: Confidence
     severity: Severity
     risk: Risk
     blast_radius: str
     rollback_tested: bool
     environment: str
+    # Fail closed: callers must state that a usable RCA exists.
+    rca_available: bool = False
 
 
 class PolicyEngine:
@@ -61,6 +65,14 @@ class PolicyEngine:
         )
 
     def _match_rules(self, req: PolicyRequest, score: float) -> tuple[PolicyDecisionEnum, str, str]:
+        # Rule 0: no valid RCA or no proposed action → nothing to remediate
+        if not req.rca_available or not req.action_type:
+            return (
+                PolicyDecisionEnum.DENY,
+                "RCA unavailable; no remediation without an evidence-based root cause",
+                "RCA_UNAVAILABLE",
+            )
+
         # Rule 1: CRITICAL severity → always require approval
         if req.severity == Severity.CRITICAL:
             return (

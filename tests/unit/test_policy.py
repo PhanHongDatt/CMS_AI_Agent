@@ -38,7 +38,8 @@ def _req(
     rollback_tested: bool = True,
     environment: str = "staging",
     confidence_score: float = 0.85,
-    action_type: str = "restart_pod",
+    action_type: str | None = "restart_pod",
+    rca_available: bool = True,
 ) -> PolicyRequest:
     return PolicyRequest(
         incident_id="inc-1",
@@ -49,6 +50,7 @@ def _req(
         blast_radius="single-pod",
         rollback_tested=rollback_tested,
         environment=environment,
+        rca_available=rca_available,
     )
 
 
@@ -131,3 +133,44 @@ class TestPolicyEngine:
         # MEDIUM in staging is not covered by prod rule → falls to DEFAULT_DENY
         assert pd.decision == PolicyDecisionEnum.DENY
         assert pd.rule_matched == "DEFAULT_DENY"
+
+
+class TestRcaGate:
+    """No remediation without a root cause — confidence alone never authorizes action."""
+
+    def test_rca_unavailable_denies_even_with_high_confidence(self):
+        pd = PolicyEngine().evaluate(_req(rca_available=False, confidence_score=0.99))
+        assert pd.decision == PolicyDecisionEnum.DENY
+        assert pd.rule_matched == "RCA_UNAVAILABLE"
+
+    def test_rca_unavailable_denies_before_critical_approval(self):
+        """Live bug: CRITICAL alert, RCA N/A, confidence 0.765 -> approval for restart_pod."""
+        pd = PolicyEngine().evaluate(
+            _req(severity=Severity.CRITICAL, rca_available=False, confidence_score=0.765)
+        )
+        assert pd.decision == PolicyDecisionEnum.DENY
+        assert pd.rule_matched == "RCA_UNAVAILABLE"
+
+    def test_missing_action_denies(self):
+        pd = PolicyEngine().evaluate(_req(action_type=None))
+        assert pd.decision == PolicyDecisionEnum.DENY
+        assert pd.rule_matched == "RCA_UNAVAILABLE"
+
+    def test_valid_rca_keeps_existing_flow(self):
+        pd = PolicyEngine().evaluate(_req(severity=Severity.CRITICAL))
+        assert pd.decision == PolicyDecisionEnum.REQUIRE_APPROVAL
+        assert pd.rule_matched == "CRITICAL_SEVERITY"
+
+    def test_request_defaults_to_rca_unavailable(self):
+        """Fail closed: a caller that forgets the flag gets DENY, not remediation."""
+        req = PolicyRequest(
+            incident_id="inc-1",
+            action_type="restart_pod",
+            confidence=_confidence(0.95),
+            severity=Severity.LOW,
+            risk=Risk.LOW,
+            blast_radius="single-pod",
+            rollback_tested=True,
+            environment="staging",
+        )
+        assert PolicyEngine().evaluate(req).rule_matched == "RCA_UNAVAILABLE"

@@ -115,7 +115,7 @@ class PipelineRunner:
         logger.info("pipeline_confidence", incident_id=incident_id, score=confidence.final_score)
 
         # ── P7: Policy ────────────────────────────────────────────────────────
-        action_type = rca.recommended_action or "restart_pod"
+        action_type = rca.recommended_action
         policy_req = PolicyRequest(
             incident_id=incident_id,
             action_type=action_type,
@@ -125,6 +125,7 @@ class PipelineRunner:
             blast_radius="single-pod",
             rollback_tested=True,
             environment=self._environment,
+            rca_available=rca_is_actionable(rca),
         )
         policy_decision = self._policy.evaluate(policy_req)
         run.policy_decision = policy_decision
@@ -145,6 +146,8 @@ class PipelineRunner:
             return
 
         if policy_decision.decision == PolicyDecisionEnum.REQUIRE_APPROVAL:
+            # Rule RCA_UNAVAILABLE denies earlier, so an action is always named here.
+            assert action_type is not None, "approval requires a recommended action"
             approved = await self._handle_approval(run, action_type)
             if not approved:
                 return
@@ -318,6 +321,11 @@ def _build_action_params(action_name: str, run: "PipelineRun") -> dict[str, obje
     return {"namespace": namespace, "pod_name": pod_name, "rollback_tested": True}
 
 
+def rca_is_actionable(rca: Any) -> bool:
+    """True only for an evidence-based RCA that names a root cause and an action."""
+    return bool(rca.root_cause) and not rca.insufficient_evidence and bool(rca.recommended_action)
+
+
 def _fallback_rca(evidence: list[Any]) -> Any:
     """Return a minimal RCA when LLM parsing fails."""
     from schemas.rca import RCA
@@ -327,7 +335,7 @@ def _fallback_rca(evidence: list[Any]) -> Any:
         evidence_ids=[str(e.id) for e in evidence],
         affected_components=[],
         alternative_hypotheses=[],
-        recommended_action="restart_pod",
+        recommended_action=None,
         insufficient_evidence=True,
         model="fallback",
         prompt_version="N/A",
